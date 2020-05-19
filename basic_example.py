@@ -1,10 +1,8 @@
 import copy
 import motor_skills.core.mj_control as mjc
 from motor_skills.envs.mj_jaco import MjJacoEnv
-
 # %%
 env = MjJacoEnv(vis=True)
-
 while True:
 
     # % compensate for gravity
@@ -21,7 +19,7 @@ while True:
     # % PD constant velocity rotation
     qdd=None
     q=None
-    qd=[0]*9
+    qd=[0]*6
     qd[0] += 1.0
-    action = mjc.pd(qdd,qd,q,env.sim)
+    action = mjc.pd(qdd,qd,q,env.sim,ndof=6)
     env.step(action)

@@ -9,8 +9,9 @@ class MjJacoEnv(object):
 
     def __init__(self, vis=False):
         super(MjJacoEnv, self).__init__()
-        parent_dir_path = str(pathlib.Path(__file__).parent.absolute())
-        self.fname = parent_dir_path + '/jaco/jaco.xml'
+        #parent_dir_path = str(pathlib.Path(__file__).parent.absolute())
+        # self.fname = parent_dir_path + '/jaco/jaco.xml'
+        self.fname = 'assets/kinova_j2s6s300/mj-j2s6s300.xml'
         self.model = load_model_from_path(self.fname)
         self.sim = MjSim(self.model)
         self.viewer = MjViewer(self.sim)
