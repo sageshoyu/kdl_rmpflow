@@ -30,7 +30,6 @@ class JacoFlatRMP(JacoRMP):
 
         # import kinematics solvers
         self.pos_solver = kdl.ChainFkSolverPos_recursive(self.chain)
-        self.vel_solver = kdl.ChainFkSolverVel_recursive(self.chain)
         self.jac_solver = kdl.ChainJntToJacSolver(self.chain)
         self.jacd_solver = kdl.ChainJntToJacDotSolver(self.chain)
 
@@ -47,26 +46,28 @@ class JacoFlatRMP(JacoRMP):
 
         # Jacobian for forward kinematics
         def J(q):
-            # set of kdl inputs
+            # set of solver inputs
             nq = np.size(q)
             jnt_q = np_to_jnt_arr(q)
             jac = kdl.Jacobian(nq)
 
             # solve Jacobian and transfer into np array
             self.jac_solver.JntToJac(jnt_q, jac)
-            np_jac = np.zeros((nq, nq))
-            for c in range(0, nq):
-                c_tst = jac.getColumn(c)
-                for r in range(0, 6):
-                    np_jac[r][c] = c_tst[r]
-
-            return np_jac
+            return jac_to_np(jac)
 
         # Jacobian time-derivative of forward kinematics
         def J_dot(q, qd):
+            # set solver inputs
+            nq = np.size(q)
+            jnt_q = np_to_jnt_arr(q)
+            jnt_qd = np_to_jnt_arr(qd)
+            jnt_q_qd = kdl.JntArrayVel(jnt_q, jnt_qd)
             jacd = kdl.Jacobian()
-            q_qd = kdl.JntArrayVel(q, qd)
-            self.jacd_solver = self.jacd_solver.JntToJacDot(q_qd, jacd)
+
+            # solve and convert to np array
+            self.jacd_solver = self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
+            return jac_to_np(jacd)
+
 
         self.hand = RMPNode("hand", self.root, phi, J, J_dot)
 
@@ -108,9 +109,20 @@ class JacoTreeRMP(JacoRMP):
 
 
 def np_to_jnt_arr(arr):
-    jnt_arr = kdl.JntArray(np.size(arr))
-    for i in range(0, np.size(arr)):
+    nq = np.size(arr)
+    jnt_arr = kdl.JntArray(nq)
+    for i in range(0, nq):
         jnt_arr[i] = arr[i]
 
     return jnt_arr
+
+def jac_to_np(jac):
+    nq = jac.columns()
+    np_jac = np.zeros((nq, nq))
+    for c in range(0, nq):
+        c_twst = jac.getColumn(c)
+        for r in range(0, 6):
+            np_jac[r][c] = c_twst[r]
+
+    return np_jac
 
