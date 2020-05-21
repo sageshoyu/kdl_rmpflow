@@ -1,0 +1,14 @@
+<mujoco model="cams">
+    <body name="cam_1_body" pos="1.0 0 1.00" euler="0 0.753 1.57">
+      <camera name="cam_1" pos="0.0 0 0" fovy="60"></camera>
+      <!-- <body name="testx" pos="0.1 0 0">
+        <geom size="0.1 0.01 0.01" type="box" rgba="1 0 0 1"/>
+      </body>
+      <body name="testy" pos="0 0.1 0">
+        <geom size="0.01 0.1 0.01" type="box" rgba="0 1 0 1"/>
+      </body>
+      <body name="testz" pos="0.0 0 0.1">
+        <geom size="0.01 0.01 0.1" type="box" rgba="0 0 1 1"/>
+      </body> -->
+    </body>
+</mujoco>

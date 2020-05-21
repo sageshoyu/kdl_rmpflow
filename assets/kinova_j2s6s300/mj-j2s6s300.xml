@@ -1,0 +1,121 @@
+<mujoco model="j2s6s300">
+    <compiler angle="radian" meshdir="meshes" eulerseq="xyz"/>
+    <visual>
+          <map znear="0.1" zfar="12.0"/>
+    </visual>
+    <size njmax="500" nconmax="100" />
+    <asset>
+        <mesh name="base" file="base.STL" />
+        <mesh name="shoulder" file="shoulder.STL" />
+        <mesh name="arm" file="arm.STL" />
+        <mesh name="forearm" file="forearm.STL" />
+        <mesh name="wrist_spherical_1" file="wrist_spherical_1.STL" />
+        <mesh name="wrist_spherical_2" file="wrist_spherical_2.STL" />
+        <mesh name="hand_3finger" file="hand_3finger.STL" />
+        <mesh name="finger_proximal" file="finger_proximal.STL" />
+        <mesh name="finger_distal" file="finger_distal.STL" />
+
+        <texture type="skybox" builtin="gradient" rgb1=".2 .3 .4" rgb2="0 0 0" width="100" height="100"/>
+        <texture name="groundplane" type="2d" builtin="checker" rgb1=".25 .26 .25" rgb2=".22 .22 .22" width="100" height="100" mark="none" markrgb=".8 .8 .8"/>
+        <material name="MatViz" specular="1" shininess=".1" reflectance="0.5" rgba=".07 .07 .1 1"/>
+        <material name="MatGnd" texture="groundplane"  texrepeat="5 5" specular="1" shininess=".3" reflectance="0.00001"/>
+
+    </asset>
+
+    <!--geom class for visual and collision geometry-->
+    <default>
+      <geom margin="0.001"/>
+      <!-- <joint damping="1.0" armature=".01"/> -->
+
+      <default class ="vizNcoll">
+        <geom material="MatViz" type="mesh" group="0"  contype="1" conaffinity="0"/>
+        <!-- <joint pos="0 0 0" type="hinge"/> -->
+      </default>
+      <default class ="ground">
+        <geom material="MatGnd" type="plane" contype="0" conaffinity="1"/>
+      </default>
+    </default>
+
+    <worldbody>
+      <light directional="true" cutoff="60" exponent="1" diffuse="1 1 1" specular=".1 .1 .1" pos="1 1 1.5" dir="-1 -1 -1.3"/>
+      <geom name="ground" class="ground" pos="0 0 0" size="2 2 1"/>
+
+        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="base" />
+        <body name="j2s6s300_link_1" childclass="vizNcoll" pos="0 0 0.15675" quat="0 0 1 0">
+            <inertial pos="0 -0.002 -0.0605" mass="0.7477" diaginertia="0.00152032 0.00152032 0.00059816" />
+            <joint name="j2s6s300_joint_1" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="-6.28319 6.28319" />
+            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="shoulder" />
+            <body name="j2s6s300_link_2"  pos="0 0.0016 -0.11875" quat="0 0 -0.707107 0.707107">
+                <inertial pos="0 -0.2065 -0.01" quat="0.707107 0.707107 0 0" mass="0.99" diaginertia="0.0105022 0.0105022 0.000792" />
+                <joint name="j2s6s300_joint_2" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0.820305 5.46288" />
+                <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="arm" />
+                <body name="j2s6s300_link_3"  pos="0 -0.41 0" quat="0 0 1 0">
+                    <inertial pos="0 0.081 -0.0086" quat="0.707107 0.707107 0 0" mass="0.6763" diaginertia="0.00142022 0.00142022 0.000304335" />
+                    <joint name="j2s6s300_joint_3" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0.331613 5.95157" />
+                    <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="forearm" />
+                    <body name="j2s6s300_link_4"  pos="0 0.2073 -0.0114" quat="0 0 -0.707107 0.707107">
+                        <inertial pos="0 0.00288489 -0.0541933" mass="0.463" diaginertia="0.000432132 0.000432132 9.26e-05" />
+                        <joint name="j2s6s300_joint_4" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="-6.28319 6.28319" />
+                        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="wrist_spherical_1" />
+                        <body name="j2s6s300_link_5"  pos="0 0 -0.10375" quat="0 0 0.707107 0.707107">
+                            <inertial pos="0 0.0497209 -0.00285628" quat="0.707107 0.707107 0 0" mass="0.463" diaginertia="0.000432132 0.000432132 9.26e-05" />
+                            <joint name="j2s6s300_joint_5" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0.523599 5.75959" />
+                            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="wrist_spherical_2" />
+                            <body name="j2s6s300_link_6"  pos="0 0.10375 0" quat="0 0 -0.707107 0.707107">
+                                <inertial pos="0 0 -0.06" quat="0.5 0.5 -0.5 0.5" mass="0.99" diaginertia="0.0005816 0.000345324 0.000345324" />
+                                <joint name="j2s6s300_joint_6" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="-6.28319 6.28319" />
+                                <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="hand_3finger" />
+                                <body name="j2s6s300_link_finger_1"  pos="0.00279 0.03126 -0.11467" quat="0.379408 -0.662973 -0.245899 0.596699">
+                                    <inertial pos="0.022 0 0" mass="0.01" diaginertia="7.89997e-07 7.89997e-07 8e-08" />
+                                    <joint name="j2s6s300_joint_finger_1" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0 1.51" />
+                                    <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="finger_proximal" />
+                                    <body name="j2s6s300_link_finger_tip_1"  pos="0.044 -0.003 0">
+                                        <inertial pos="0.022 0 0" mass="0.01" diaginertia="7.89997e-07 7.89997e-07 8e-08" />
+                                        <joint name="j2s6s300_joint_finger_tip_1" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0 2" />
+                                        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="finger_distal" />
+                                    </body>
+                                </body>
+                                <body name="j2s6s300_link_finger_2"  pos="0.02226 -0.02707 -0.11482" quat="0.659653 -0.37146 0.601679 -0.254671">
+                                    <inertial pos="0.022 0 0" mass="0.01" diaginertia="7.89997e-07 7.89997e-07 8e-08" />
+                                    <joint name="j2s6s300_joint_finger_2" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0 1.51" />
+                                    <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="finger_proximal" />
+                                    <body name="j2s6s300_link_finger_tip_2"  pos="0.044 -0.003 0">
+                                        <inertial pos="0.022 0 0" mass="0.01" diaginertia="7.89997e-07 7.89997e-07 8e-08" />
+                                        <joint name="j2s6s300_joint_finger_tip_2" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0 2" />
+                                        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="finger_distal" />
+                                    </body>
+                                </body>
+                                <body name="j2s6s300_link_finger_3"  pos="-0.02226 -0.02707 -0.11482" quat="0.601679 -0.254671 0.659653 -0.37146">
+                                    <inertial pos="0.022 0 0" mass="0.01" diaginertia="7.89997e-07 7.89997e-07 8e-08" />
+                                    <joint name="j2s6s300_joint_finger_3" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0 1.51" />
+                                    <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="finger_proximal" />
+                                    <body name="j2s6s300_link_finger_tip_3"  pos="0.044 -0.003 0">
+                                        <inertial pos="0.022 0 0" mass="0.01" diaginertia="7.89997e-07 7.89997e-07 8e-08" />
+                                        <joint name="j2s6s300_joint_finger_tip_3" pos="0 0 0" axis="0 0 1" limited="true" damping="1.0" armature=".01" range="0 2" />
+                                        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="finger_distal" />
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+        <include file="../cameras.xml"/>
+    </worldbody>
+    <actuator>
+  		<!--  ================= Torque actuators (Weren't present in the URDF. Added seperately)================= /-->
+  		<motor joint='j2s6s300_joint_1' 	          name='j2s6s300_joint_1' 	          />
+  		<motor joint='j2s6s300_joint_2' 	          name='j2s6s300_joint_2' 	          />
+  		<motor joint='j2s6s300_joint_3' 	          name='j2s6s300_joint_3' 	          />
+  		<motor joint='j2s6s300_joint_4' 	          name='j2s6s300_joint_4' 	          />
+  		<motor joint='j2s6s300_joint_5' 	          name='j2s6s300_joint_5' 	          />
+  		<motor joint='j2s6s300_joint_6' 	          name='j2s6s300_joint_6' 	          />
+  		<motor joint='j2s6s300_joint_finger_1' 	    name='j2s6s300_joint_finger_1' 	    />
+  		<motor joint='j2s6s300_joint_finger_tip_1' 	name='j2s6s300_joint_finger_tip_1'  />
+      <motor joint='j2s6s300_joint_finger_2' 	    name='j2s6s300_joint_finger_2' 	    />
+  		<motor joint='j2s6s300_joint_finger_tip_2' 	name='j2s6s300_joint_finger_tip_2'  />
+      <motor joint='j2s6s300_joint_finger_3' 	    name='j2s6s300_joint_finger_3' 	    />
+  		<motor joint='j2s6s300_joint_finger_tip_3' 	name='j2s6s300_joint_finger_tip_3'  />
+  	</actuator>
+  </mujoco>

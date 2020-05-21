@@ -2,9 +2,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import mujoco_py
 
+
 def gravity_comp(sim, ndof=9):
     # % qfrc_bias represents sum of Coriolis and gravity forces.
     return sim.data.qfrc_bias[:ndof]
+
 
 def get_mass_matrix(sim, ndof):
     # % prepare array to hold result
