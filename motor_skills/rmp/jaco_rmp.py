@@ -2,6 +2,7 @@ import numpy as np
 import PyKDL as kdl
 from motor_skills.rmp.rmp import RMPRoot
 from motor_skills.rmp.rmp import RMPNode
+from motor_skills.rmp.rmp_leaf import GoalAttractorUni
 from urdf_parser_py.urdf import URDF
 from kdl_parser_py import urdf as parser
 import abc
@@ -36,7 +37,7 @@ class JacoFlatRMP(JacoRMP):
         self.root = RMPRoot("jaco_root")
 
         # forward kinematics
-        def phi(q):
+        def psi(q):
             p_frame = kdl.Frame()
             jnt_q = np_to_jnt_arr(q)
             self.pos_solver.JntToCart(jnt_q, p_frame)
@@ -65,14 +66,18 @@ class JacoFlatRMP(JacoRMP):
             jacd = kdl.Jacobian(nq)
 
             # solve and convert to np array
-            self.jacd_solver = self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
+            self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
             return jac_to_np(jacd)
 
-        self.hand = RMPNode("hand", self.root, phi, J, J_dot)
+        self.hand = RMPNode("hand", self.root, psi, J, J_dot)
+
+        goal = [0, 0, 1, 0, 0, 0]
+        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([goal]).T)
 
     def eval(self, q, qd):
         # turn list inputs into column vectors and set state
-        return self.root.solve(np.array([q]).T, np.array([qd]).T).flatten().tolist()
+        np_qdd = self.root.solve(np.array([q]).T, np.array([qd]).T)
+        return np_qdd.flatten().tolist()
 
 class JacoTreeRMP(JacoRMP):
     def __init__(self):
