@@ -70,14 +70,15 @@ class JacoFlatRMP(JacoRMP):
             return jac_to_np(jacd)
 
         self.hand = RMPNode("hand", self.root, psi, J, J_dot)
-
-        goal = [0, 0, 1, 0, 0, 0]
-        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([goal]).T)
+        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([0, 0, 0, 0, 0, 0]).T)
 
     def eval(self, q, qd):
         # turn list inputs into column vectors and set state
         np_qdd = self.root.solve(np.array([q]).T, np.array([qd]).T)
         return np_qdd.flatten().tolist()
+
+    def set_goal(self, goal):
+        self.atrc.update_goal(np.array([goal]).T)
 
 class JacoTreeRMP(JacoRMP):
     def __init__(self):

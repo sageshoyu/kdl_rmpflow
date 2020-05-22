@@ -8,6 +8,9 @@ from motor_skills.rmp.jaco_rmp import JacoFlatRMP
 # %%
 env = MjJacoEnv(vis=True)
 rmp = JacoFlatRMP()
+r_xpos = np.size(env.sim.data.body_xpos, 0)
+target_pos = env.sim.data.body_xpos[r_xpos - 1]
+rmp.set_goal([target_pos[0], target_pos[1],target_pos[2], 0, 0, 0])
 qdd_cap = 1000
 while True:
 
@@ -29,7 +32,7 @@ while True:
 
     #print('qpos: ' + str(env.sim.data.qpos[:6]))
     print('xpos: ' + str(env.sim.data.body_xpos[6]))
-    quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
-    r = R.from_quat(quat)
+    #quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
+    #r = R.from_quat(quat)
     #print('rot: ' + str(r.as_euler('xyz', degrees=False)))
     #print('qdd: ' + str(qdd))

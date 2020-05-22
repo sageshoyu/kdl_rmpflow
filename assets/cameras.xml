@@ -9,6 +9,9 @@
       </body>
       <body name="testz" pos="0.0 0 0.1">
         <geom size="0.01 0.01 0.1" type="box" rgba="0 0 1 1"/>
-      </body> -->
+      </body> -->`
+    </body>
+    <body name="target" pos="0.5 0.5 0.15" euler="0 0 0">
+        <geom size="0.01 0.01 0.01" type="sphere" rgba="0 0 1 1" />
     </body>
 </mujoco>
