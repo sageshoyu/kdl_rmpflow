@@ -62,21 +62,17 @@ class JacoFlatRMP(JacoRMP):
             jnt_q = np_to_jnt_arr(q)
             jnt_qd = np_to_jnt_arr(qd)
             jnt_q_qd = kdl.JntArrayVel(jnt_q, jnt_qd)
-            jacd = kdl.Jacobian()
+            jacd = kdl.Jacobian(nq)
 
             # solve and convert to np array
             self.jacd_solver = self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
             return jac_to_np(jacd)
 
-
         self.hand = RMPNode("hand", self.root, phi, J, J_dot)
 
     def eval(self, q, qd):
         # turn list inputs into column vectors and set state
-        self.root.set_root_state(np.array([q]).T, np.array([qd]).T)
-        self.root.pushforward()
-        return [0] * 6
-
+        return self.root.solve(np.array([q]).T, np.array([qd]).T).flatten().tolist()
 
 class JacoTreeRMP(JacoRMP):
     def __init__(self):
