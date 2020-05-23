@@ -7,6 +7,12 @@ from motor_skills.rmp.jaco_rmp import JacoFlatRMP
 
 # %%
 env = MjJacoEnv(vis=True)
+
+# set the jaco arm to a stable(ish) position
+env.sim.data.qpos[:6] = [1]*6
+env.sim.data.qvel[:6] = [0]*6
+
+
 rmp = JacoFlatRMP()
 r_xpos = np.size(env.sim.data.body_xpos, 0)
 target_pos = env.sim.data.body_xpos[r_xpos - 2]
