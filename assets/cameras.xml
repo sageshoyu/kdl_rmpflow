@@ -11,10 +11,10 @@
         <geom size="0.01 0.01 0.1" type="box" rgba="0 0 1 1"/>
       </body> -->`
     </body>
-    <body name="target" pos="0.5 0.5 0.15" euler="0 0 0">
+    <body name="target" pos="-0.5 -0.5 0.15" euler="0 0 0">
         <geom size="0.01 0.01 0.01" type="sphere" rgba="0 0 1 1" />
     </body>
-    <body name="obstacle" pos="0.25 0.25 0.5" euler="0 0 0 ">
+    <body name="obstacle" pos="-0.3 -0.5 0.15" euler="0 0 0 ">
         <geom size="0.01 0.01 0.01" type="sphere" rgba="1 0 0 1" />
     </body>
 </mujoco>
