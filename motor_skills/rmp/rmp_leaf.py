@@ -12,7 +12,7 @@ class CollisionAvoidance(RMPLeaf):
     Obstacle avoidance RMP leaf
     """
 
-    def __init__(self, name, parent, parent_param, c=np.zeros(2), R=1, epsilon=0.2,
+    def __init__(self, name, parent, parent_param, c=np.zeros(6), R=1, epsilon=0.2,
                  alpha=1e-5, eta=0):
 
         self.R = R
@@ -64,7 +64,10 @@ class CollisionAvoidance(RMPLeaf):
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
+    def set_obstacle(self, c):
+        self.psi = lambda y: np.array(norm(y - c) / self.R - 1).reshape(-1, 1)
 
+# NOTE: MOST OF THIS ASSUMES TASK SPACE ON FLAT CARTESIAN PLANE. GENERALIZE IF NEEDED
 class CollisionAvoidanceDecentralized(RMPLeaf):
     """
     Decentralized collision avoidance RMP leaf for the RMPForest

@@ -9,8 +9,10 @@ from motor_skills.rmp.jaco_rmp import JacoFlatRMP
 env = MjJacoEnv(vis=True)
 rmp = JacoFlatRMP()
 r_xpos = np.size(env.sim.data.body_xpos, 0)
-target_pos = env.sim.data.body_xpos[r_xpos - 1]
+target_pos = env.sim.data.body_xpos[r_xpos - 2]
+obstacle_pos = env.sim.data.body_xpos[r_xpos - 1]
 rmp.set_goal([target_pos[0], target_pos[1],target_pos[2], 0, 0, 0])
+rmp.set_obst([obstacle_pos[0], obstacle_pos[1], obstacle_pos[2], 0, 0, 0])
 qdd_cap = 1000
 while True:
 

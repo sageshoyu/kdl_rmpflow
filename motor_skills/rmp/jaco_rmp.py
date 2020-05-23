@@ -3,6 +3,7 @@ import PyKDL as kdl
 from motor_skills.rmp.rmp import RMPRoot
 from motor_skills.rmp.rmp import RMPNode
 from motor_skills.rmp.rmp_leaf import GoalAttractorUni
+from motor_skills.rmp.rmp_leaf import CollisionAvoidance
 from urdf_parser_py.urdf import URDF
 from kdl_parser_py import urdf as parser
 import abc
@@ -71,6 +72,7 @@ class JacoFlatRMP(JacoRMP):
 
         self.hand = RMPNode("hand", self.root, psi, J, J_dot)
         self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([0, 0, 0, 0, 0, 0]).T)
+        self.obst = CollisionAvoidance("jaco_avoider", self.hand, None, np.array([0]*6), epsilon=0.01)
 
     def eval(self, q, qd):
         # turn list inputs into column vectors and set state
@@ -79,6 +81,9 @@ class JacoFlatRMP(JacoRMP):
 
     def set_goal(self, goal):
         self.atrc.update_goal(np.array([goal]).T)
+
+    def set_obst(self, obst):
+        self.obst.set_obstacle(np.array([obst]).T)
 
 class JacoTreeRMP(JacoRMP):
     def __init__(self):
