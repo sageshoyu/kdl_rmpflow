@@ -16,7 +16,8 @@ class JacoRMP(abc.ABC):
         # parse out KDL kinematic chain from URDF
         robot = URDF.from_xml_file(path)
         base_link = "world"
-        end_link = "j2s6s300_link_6"
+        # end_link = "j2s6s300_link_6"
+        end_link = "j2s6s300_link_finger_tip_1"
         # tree = kdl_tree_from_urdf_model(robot)
         _, tree = parser.treeFromUrdfModel(robot)
         self.chain = tree.getChain(base_link, end_link)
@@ -43,8 +44,9 @@ class JacoFlatRMP(JacoRMP):
             jnt_q = np_to_jnt_arr(q)
             self.pos_solver.JntToCart(jnt_q, p_frame)
             p = p_frame.p
-            rz, ry, rx = p_frame.M.GetEulerZYX()
-            return np.array([[p.x(), p.y(), p.z(), rx, ry, rz]]).T
+            # rz, ry, rx = p_frame.M.GetEulerZYX()
+            # return np.array([[p.x(), p.y(), p.z(), rx, ry, rz]]).T
+            return np.array([[p.x(), p.y(), p.z()]]).T
 
         # Jacobian for forward kinematics
         def J(q):
@@ -71,8 +73,8 @@ class JacoFlatRMP(JacoRMP):
             return jac_to_np(jacd)
 
         self.hand = RMPNode("hand", self.root, psi, J, J_dot)
-        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([0, 0, 0, 0, 0, 0]).T)
-        self.obst = CollisionAvoidance("jaco_avoider", self.hand, None, np.array([0]*6), epsilon=0.1)
+        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([0]*3).T, gain=4)
+        self.obst = CollisionAvoidance("jaco_avoider", self.hand, None, np.array([0]*3), R=0.05, alpha=2, eta=100)
 
     def eval(self, q, qd):
         # turn list inputs into column vectors and set state
@@ -125,11 +127,12 @@ def np_to_jnt_arr(arr):
 
 def jac_to_np(jac):
     nq = jac.columns()
-    np_jac = np.zeros((nq, nq))
+    # used to be 6 to include rotation`
+    np_jac = np.zeros((3, nq))
     for c in range(0, nq):
         c_twst = jac.getColumn(c)
-        for r in range(0, 6):
+        # used to be 6 to include rotation
+        for r in range(0, 3):
             np_jac[r][c] = c_twst[r]
 
     return np_jac
-

@@ -9,7 +9,7 @@ from motor_skills.rmp.jaco_rmp import JacoFlatRMP
 env = MjJacoEnv(vis=True)
 
 # set the jaco arm to a stable(ish) position
-env.sim.data.qpos[:6] = [1]*6
+env.sim.data.qpos[:6] = [2.5, 1, 1, 1, 1, 1]
 env.sim.data.qvel[:6] = [0]*6
 
 
@@ -17,16 +17,16 @@ rmp = JacoFlatRMP()
 r_xpos = np.size(env.sim.data.body_xpos, 0)
 target_pos = env.sim.data.body_xpos[r_xpos - 2]
 obstacle_pos = env.sim.data.body_xpos[r_xpos - 1]
-rmp.set_goal([target_pos[0], target_pos[1],target_pos[2], 0, 0, 0])
-rmp.set_obst([obstacle_pos[0], obstacle_pos[1], obstacle_pos[2], 0, 0, 0])
+rmp.set_goal([target_pos[0], target_pos[1],target_pos[2]])
+rmp.set_obst([obstacle_pos[0], obstacle_pos[1], obstacle_pos[2]])
 qdd_cap = 1000
 while True:
 
     # evaluate RMP for goal
-    q = env.sim.data.qpos[:6]
-    qd = env.sim.data.qvel[:6]
+    q = env.sim.data.qpos[:8]
+    qd = env.sim.data.qvel[:8]
     qdd = rmp.eval(q, qd)
-    action = mjc.pd(qdd, qd, q, env.sim, ndof=6)
+    action = mjc.pd(qdd, qd, q, env.sim, ndof=8)
 
     action_norm = np.linalg.norm(action)
     if action_norm > qdd_cap:
@@ -39,7 +39,7 @@ while True:
         break
 
     #print('qpos: ' + str(env.sim.data.qpos[:6]))
-    print('xpos: ' + str(env.sim.data.body_xpos[6]))
+    print('xpos: ' + str(env.sim.data.body_xpos[8]))
     #quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
     #r = R.from_quat(quat)
     #print('rot: ' + str(r.as_euler('xyz', degrees=False)))

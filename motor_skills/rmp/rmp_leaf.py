@@ -12,7 +12,7 @@ class CollisionAvoidance(RMPLeaf):
     Obstacle avoidance RMP leaf
     """
 
-    def __init__(self, name, parent, parent_param, c=np.zeros(6), R=1, epsilon=0.2,
+    def __init__(self, name, parent, parent_param, c, R=1, epsilon=0.2,
                  alpha=1e-5, eta=0):
 
         self.R = R
@@ -30,7 +30,7 @@ class CollisionAvoidance(RMPLeaf):
                 c = c.reshape(-1, 1)
 
             N = c.size
-
+            # R is the radius of the obstacle point
             psi = lambda y: np.array(norm(y - c) / R - 1).reshape(-1, 1)
             J = lambda y: 1.0 / norm(y - c) * (y - c).T / R
             J_dot = lambda y, y_dot: np.dot(
@@ -39,12 +39,15 @@ class CollisionAvoidance(RMPLeaf):
                  + 1 / norm(y - c) * np.eye(N))) / R
 
         def RMP_func(x, x_dot):
+            # if inside obstacle, set w to HIGH value to PULL OUT
             if x < 0:
                 w = 1e10
                 grad_w = 0
+            # if not, decrease pressure according to power of 2 (previously pwr of 4, too aggressive)
             else:
-                w = 1.0 / x ** 4
-                grad_w = -4.0 / x ** 5
+                w = 1.0 / x ** 2
+                grad_w = -2.0 / x ** 3
+            # epsilon is the constant value when moving away from the obstacle
             u = epsilon + np.minimum(0, x_dot) * x_dot
             g = w * u
 
@@ -58,7 +61,12 @@ class CollisionAvoidance(RMPLeaf):
             Bx_dot = eta * g * x_dot
 
             f = - grad_Phi - xi - Bx_dot
+            # remember: this is modified a TON
             f = np.minimum(np.maximum(f, - 1e10), 1e10)
+
+            #print(self.name + " f: " + str(f))
+            #print(self.name + " M: " + str(M))
+            #print(self.name + " g: " + str(g))
 
             return (f, M)
 
@@ -260,6 +268,8 @@ class GoalAttractorUni(RMPLeaf):
 
             M = G
             f = - grad_Phi - Bx_dot - xi
+
+            #print(self.name + " f: " + str(f))
 
             return (f, M)
 
