@@ -73,8 +73,8 @@ class JacoFlatRMP(JacoRMP):
             return jac_to_np(jacd)
 
         self.hand = RMPNode("hand", self.root, psi, J, J_dot)
-        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([0]*3).T, gain=4)
-        self.obst = CollisionAvoidance("jaco_avoider", self.hand, None, np.array([0]*3), R=0.05, alpha=2, eta=100)
+        self.atrc = GoalAttractorUni("jaco_attractor", self.hand, np.array([0]*3).T, gain=3.5)
+        self.obst = CollisionAvoidance("jaco_avoider", self.hand, None, np.array([0]*3), R=0.05, alpha=1e-5, eta=10)
 
     def eval(self, q, qd):
         # turn list inputs into column vectors and set state
