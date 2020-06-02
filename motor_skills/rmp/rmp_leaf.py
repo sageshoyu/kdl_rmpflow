@@ -7,7 +7,7 @@ import numpy as np
 from numpy.linalg import norm
 
 
-class CollisionAvoidance(RMPLeaf):
+class CollisionAvoidanceSphere(RMPLeaf):
     """
     Obstacle avoidance RMP leaf
     """
@@ -37,6 +37,94 @@ class CollisionAvoidance(RMPLeaf):
                 y_dot.T,
                 (-1 / norm(y - c) ** 3 * np.dot((y - c), (y - c).T)
                  + 1 / norm(y - c) * np.eye(N))) / R
+
+        def RMP_func(x, x_dot):
+            # if inside obstacle, set w to HIGH value to PULL OUT
+            if x < 0:
+                w = 1e10
+                grad_w = 0
+            # if not, decrease pressure according to power of 2 (previously pwr of 4, too aggressive)
+            else:
+                w = 1.0 / x ** 2
+                grad_w = -2.0 / x ** 3
+            # epsilon is the constant value when moving away from the obstacle
+            u = epsilon + np.minimum(0, x_dot) * x_dot
+            g = w * u
+
+            grad_u = 2 * np.minimum(0, x_dot)
+            grad_Phi = alpha * w * grad_w
+            xi = 0.5 * x_dot ** 2 * u * grad_w
+
+            M = g + 0.5 * x_dot * w * grad_u
+            M = np.minimum(np.maximum(M, - 1e5), 1e5)
+
+            Bx_dot = eta * g * x_dot
+
+            f = - grad_Phi - xi - Bx_dot
+            # remember: this is modified a TON
+            f = np.minimum(np.maximum(f, - 1e10), 1e10)
+
+            #print(self.name + " f: " + str(f))
+            #print(self.name + " M: " + str(M))
+            #print(self.name + " g: " + str(g))
+
+            return (f, M)
+
+        RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
+
+    def set_obstacle(self, c):
+        self.psi = lambda y: np.array(norm(y - c) / self.R - 1).reshape(-1, 1)
+
+
+class CollisionAvoidanceBox(RMPLeaf):
+    """
+    Obstacle avoidance RMP leaf
+    """
+
+    def __init__(self, name, parent, parent_param, c, r, R=1, epsilon=0.2,
+                 alpha=1e-5, eta=0):
+
+        self.R = R
+        self.alpha = alpha
+        self.eta = eta
+        self.epsilon = epsilon
+
+        if parent_param:
+            psi = None
+            J = None
+            J_dot = None
+
+        else:
+            if c.ndim == 1:
+                c = c.reshape(-1, 1)
+
+            N = c.size
+            # graphics people solved this one already:
+            # https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+            # note: we normalize by R
+            psi = lambda y: np.array(
+                (norm(np.maximum(np.abs(y - c) - r, 0.0))
+                + np.min(np.max(np.abs(y - c) - r), 0.0))
+                / R).reshape(-1, 1)
+
+            # (but not the Jacobian)
+            def J(y):
+                p_min_r = np.maximum((np.abs(y - c) - r).T, 0.0)
+                norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
+                p_out = np.divide(p_min_r, norm_p_min_r, out=np.zeros_like(p_min_r), where=norm_p_min_r!=0)
+                p_in = np.zeros((1, N))
+                p_in[0][np.argmax(p_min_r)] = - np.all(np.less(p_min_r, 0))
+                return (p_out + p_in) / R
+
+            # ... and J dot
+            def J_dot(y, y_dot):
+                p_min_r = np.maximum((np.abs(y - c) - r).T, 0.0)
+                p_min_r3 = p_min_r ** 3
+                norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
+                fp_g = np.divide(y_dot, norm_p_min_r, out=np.zeros_like(y_dot), where=norm_p_min_r!=0).T
+                p_fg = np.dot(p_min_r, y_dot) \
+                       * np.divide(p_min_r, p_min_r3, out=np.zeros_like(p_min_r), where=p_min_r3!=0).T
+                return fp_g - p_fg
 
         def RMP_func(x, x_dot):
             # if inside obstacle, set w to HIGH value to PULL OUT
