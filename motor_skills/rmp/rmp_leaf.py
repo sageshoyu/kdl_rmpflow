@@ -39,6 +39,8 @@ class CollisionAvoidanceSphere(RMPLeaf):
                  + 1 / norm(y - c) * np.eye(N))) / R
 
         def RMP_func(x, x_dot):
+            print(self.name + " x: " + str(x))
+            print(self.name + " x_dot: " + str(x_dot))
             # if inside obstacle, set w to HIGH value to PULL OUT
             if x < 0:
                 w = 1e10
@@ -72,19 +74,15 @@ class CollisionAvoidanceSphere(RMPLeaf):
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
-    def set_obstacle(self, c):
-        self.psi = lambda y: np.array(norm(y - c) / self.R - 1).reshape(-1, 1)
-
-
+# todo: policy currently unstable - need to check math (use auto-differentiation library like Jax?)
 class CollisionAvoidanceBox(RMPLeaf):
     """
     Obstacle avoidance RMP leaf
     """
 
-    def __init__(self, name, parent, parent_param, c, r, R=1, epsilon=0.2,
+    def __init__(self, name, parent, parent_param, c, r, epsilon=0.2,
                  alpha=1e-5, eta=0):
-
-        self.R = R
+        r = np.abs(r)
         self.alpha = alpha
         self.eta = eta
         self.epsilon = epsilon
@@ -102,31 +100,37 @@ class CollisionAvoidanceBox(RMPLeaf):
             # graphics people solved this one already:
             # https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
             # note: we normalize by R
+
+            # TODO: implement length, width, height normalization
             psi = lambda y: np.array(
-                (norm(np.maximum(np.abs(y - c) - r, 0.0))
-                + np.min(np.max(np.abs(y - c) - r), 0.0))
-                / R).reshape(-1, 1)
+                 (norm(np.maximum(np.abs(y - c) - r, 0.0))
+                 + min(np.max(np.abs(y - c) - r), 0.0))).reshape(-1, 1)
 
             # (but not the Jacobian)
             def J(y):
-                p_min_r = np.maximum((np.abs(y - c) - r).T, 0.0)
+                p_min_r = np.maximum((np.abs(y - c) - r), 0.0)
                 norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
-                p_out = np.divide(p_min_r, norm_p_min_r, out=np.zeros_like(p_min_r), where=norm_p_min_r!=0)
-                p_in = np.zeros((1, N))
-                p_in[0][np.argmax(p_min_r)] = - np.all(np.less(p_min_r, 0))
-                return (p_out + p_in) / R
+                p_out = np.divide(p_min_r, norm_p_min_r, out=np.zeros_like(p_min_r), where=norm_p_min_r != 0)
+                p_in = np.zeros((np.size(c), 1))
+                p_in[np.argmax(p_min_r)][0] = -int(np.all(np.less(p_min_r, 0)))
+                return ((p_out + p_in) * np.sign(y - c)).T
+            self.J = J
 
             # ... and J dot
             def J_dot(y, y_dot):
-                p_min_r = np.maximum((np.abs(y - c) - r).T, 0.0)
+                p_min_r = np.maximum((np.abs(y - c) - r), 0.0)
                 p_min_r3 = p_min_r ** 3
                 norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
-                fp_g = np.divide(y_dot, norm_p_min_r, out=np.zeros_like(y_dot), where=norm_p_min_r!=0).T
-                p_fg = np.dot(p_min_r, y_dot) \
-                       * np.divide(p_min_r, p_min_r3, out=np.zeros_like(p_min_r), where=p_min_r3!=0).T
-                return fp_g - p_fg
+                fp_g = np.divide(y_dot, norm_p_min_r, out=np.zeros_like(y_dot), where=norm_p_min_r != 0)
+                p_fg = np.dot(p_min_r.T, y_dot) \
+                    * np.divide(p_min_r, p_min_r3, out=np.zeros_like(p_min_r), where=p_min_r3 != 0)
+                return ((fp_g - p_fg) * np.sign(y - c)).T
+            self.J_dot = J_dot
 
         def RMP_func(x, x_dot):
+            print(self.name + " x: " + str(x))
+            print(self.name + " x_dot: " + str(x_dot))
+
             # if inside obstacle, set w to HIGH value to PULL OUT
             if x < 0:
                 w = 1e10
@@ -159,10 +163,6 @@ class CollisionAvoidanceBox(RMPLeaf):
             return (f, M)
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
-
-    def set_obstacle(self, c):
-        self.psi = lambda y: np.array(norm(y - c) / self.R - 1).reshape(-1, 1)
-
 
 class GoalAttractorUni(RMPLeaf):
     """
