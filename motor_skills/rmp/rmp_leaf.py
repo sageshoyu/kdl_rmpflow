@@ -47,8 +47,8 @@ class CollisionAvoidanceSphere(RMPLeaf):
                 grad_w = 0
             # if not, decrease pressure according to power of 2 (previously pwr of 4, too aggressive)
             else:
-                w = 1.0 / x ** 2
-                grad_w = -2.0 / x ** 3
+                w = 1.0 / x ** 4
+                grad_w = -4.0 / x ** 5
             # epsilon is the constant value when moving away from the obstacle
             u = epsilon + np.minimum(0, x_dot) * x_dot
             g = w * u
@@ -202,7 +202,7 @@ class GoalAttractorUni(RMPLeaf):
             M = G
             f = - grad_Phi - Bx_dot - xi
 
-            #print(self.name + " f: " + str(f))
+            print(self.name + " f: " + str(f))
 
             return (f, M)
 

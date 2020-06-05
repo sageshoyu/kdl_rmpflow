@@ -1,5 +1,5 @@
 <mujoco model="obstacles">
-    <body name="target" pos="-0.42 -0.18 0.65" euler="0 0 0">
+    <body name="target" pos="-0.42 -0.18 0.85" euler="0 0 0">
         <geom size="0.01 0.01 0.01" type="sphere" rgba="0 0 1 1" contype="7" conaffinity="8"/>
     </body>
     <body name="obstacle" pos="-0.42 -0.18 0.5" euler="0 0 0">
