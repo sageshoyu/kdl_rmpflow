@@ -154,8 +154,8 @@ class CollisionAvoidancePaper(RMPLeaf):
             # print(self.name + " M: " + str(M))
             # print(self.name + " g: " + str(g))
 
-            # convert back and return
-            return (np.array(f), np.array(M))
+            # convert from jax array to numpy array and return
+            return (np.asarray(f), np.asarray(M))
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
@@ -325,8 +325,8 @@ class Damper(RMPLeaf):
 
     def __init__(self, name, parent, w=1, eta=1):
         psi = lambda y: y
-        J = lambda y: np.eye(2)
-        J_dot = lambda y, y_dot: np.zeros((2, 2))
+        J = lambda y: np.eye(y.size)
+        J_dot = lambda y, y_dot: np.zeros((y.size, y.size))
 
         def RMP_func(x, x_dot):
             G = w
@@ -337,3 +337,29 @@ class Damper(RMPLeaf):
             return (f, M)
 
         RMPLeaf.__init__(self, name, parent, None, psi, J, J_dot, RMP_func)
+
+
+class JointLimiter(RMPLeaf):
+    def __init__(self, name, parent, jnt_bounds, x_0, lam, sigma, nu_p, nu_d):
+        psi = lambda y: y
+        J = lambda y: np.eye(y.size)
+        J_dot = lambda y, y_dot: np.zeros((y.size, y.size))
+
+        def RMP_func(x, x_dot):
+            l_l = jnt_bounds[:][0]
+            l_u = jnt_bounds[:][1]
+
+            def d(q, qd):
+                s = (q - l_l) / (l_u - l_l)
+                d = 4 * s * (1 - s)
+                alpha_l = 1 - jnp.exp(-jnp.minimum(qd, 0) / 2 / sigma ** 2)
+                alpha_u = 1 - jnp.exp(-jnp.maximum(qd, 0) / 2 / sigma ** 2)
+                return (s * (alpha_u * d + (1 - alpha_u)) + (1 - s)(alpha_l * d + (1 - alpha_l))) ** -2
+
+            M = lam * np.diag(d(x, x_dot).flatten())
+            xi = 0.5 * grad(d, argnums=0)(x, x_dot) * x_dot ** 2
+            f = np.dot(M, nu_p * (x_0 - x) - nu_d * x_dot) - xi
+
+            return (f, M)
+
+        super().__init__(self, name, parent, psi, J, J_dot, RMP_func)
