@@ -6,8 +6,11 @@ from .rmp import RMPNode, RMPRoot, RMPLeaf
 import numpy as np
 from numpy.linalg import norm
 
+import jax.numpy as jnp
+from jax import grad, jit
 
-class CollisionAvoidanceSphere(RMPLeaf):
+
+class CollisionAvoidanceGeorgia(RMPLeaf):
     """
     Obstacle avoidance RMP leaf
     """
@@ -49,6 +52,7 @@ class CollisionAvoidanceSphere(RMPLeaf):
             else:
                 w = 1.0 / x ** 4
                 grad_w = -4.0 / x ** 5
+
             # epsilon is the constant value when moving away from the obstacle
             u = epsilon + np.minimum(0, x_dot) * x_dot
             g = w * u
@@ -57,6 +61,7 @@ class CollisionAvoidanceSphere(RMPLeaf):
             grad_Phi = alpha * w * grad_w
             xi = 0.5 * x_dot ** 2 * u * grad_w
 
+            # upper-case xi calculation is included here
             M = g + 0.5 * x_dot * w * grad_u
             M = np.minimum(np.maximum(M, - 1e5), 1e5)
 
@@ -66,13 +71,94 @@ class CollisionAvoidanceSphere(RMPLeaf):
             # remember: this is modified a TON
             f = np.minimum(np.maximum(f, - 1e10), 1e10)
 
-            #print(self.name + " f: " + str(f))
-            #print(self.name + " M: " + str(M))
-            #print(self.name + " g: " + str(g))
+            # print(self.name + " f: " + str(f))
+            # print(self.name + " M: " + str(M))
+            # print(self.name + " g: " + str(g))
 
             return (f, M)
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
+
+
+class CollisionAvoidancePaper(RMPLeaf):
+    """
+    Obstacle avoidance RMP leaf, but with recommendations from the original RMPFlow
+    paper
+    """
+
+    def __init__(self, name, parent, parent_param, c, R=1, epsilon=0.2,
+                 alpha=1e-5, eta=0, r_w=0.07, sigma=0.5):
+
+        self.R = R
+        self.alpha = alpha
+        self.eta = eta
+        self.epsilon = epsilon
+        self.r_w = r_w
+
+        if parent_param:
+            psi = None
+            J = None
+            J_dot = None
+
+        else:
+            if c.ndim == 1:
+                c = c.reshape(-1, 1)
+
+            N = c.size
+            # R is the radius of the obstacle point
+            psi = lambda y: np.array(norm(y - c) - R).reshape(-1, 1)
+            J = lambda y: 1.0 / norm(y - c) * (y - c).T
+            J_dot = lambda y, y_dot: np.dot(
+                y_dot.T,
+                (-1 / norm(y - c) ** 3 * np.dot((y - c), (y - c).T)
+                 + 1 / norm(y - c) * np.eye(N)))
+
+        self.w = lambda y: max(self.r_w - y, 0) / (y - R) if y >= 0 else 1e10
+        self.grad_w = grad(self.w)
+
+        self.u = lambda y_dot: epsilon + (1.0 - jnp.exp(-y_dot ** 2 / 2.0 / sigma ** 2) if y_dot < 0 else 0.0)
+        self.grad_u = grad(self.u)
+
+        # computations done in Jax and returne din numpy
+        def RMP_func(x, x_dot):
+            print(self.name + " x: " + str(x))
+            print(self.name + " x_dot: " + str(x_dot))
+
+            x = x[0][0]
+            x_dot = x_dot[0][0]
+
+            w_x = self.w(x)
+            dw_x = self.grad_w(x)
+
+            # epsilon is the constant value when moving away from the obstacle
+            u_xd = self.u(x_dot)
+
+            g = w_x * u_xd
+
+            du_xd = self.grad_u(x_dot)
+
+            grad_Phi = alpha * w_x * dw_x
+            xi = 0.5 * x_dot ** 2 * u_xd * dw_x
+
+            # upper-case xi calculation is included here
+            M = g + 0.5 * x_dot * w_x * du_xd
+            M = jnp.minimum(jnp.maximum(M, - 1e5), 1e5)
+
+            Bx_dot = eta * g * x_dot
+
+            f = - grad_Phi - xi - Bx_dot
+            # remember: this is modified a TON
+            f = jnp.minimum(jnp.maximum(f, - 1e10), 1e10)
+
+            # print(self.name + " f: " + str(f))
+            # print(self.name + " M: " + str(M))
+            # print(self.name + " g: " + str(g))
+
+            # convert back and return
+            return (np.array(f), np.array(M))
+
+        RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
+
 
 # todo: policy currently unstable - need to check math (use auto-differentiation library like Jax?)
 class CollisionAvoidanceBox(RMPLeaf):
@@ -103,7 +189,7 @@ class CollisionAvoidanceBox(RMPLeaf):
 
             # TODO: implement length, width, height normalization
             psi = lambda y: np.array(
-                 (norm(np.maximum(np.abs(y - c) - r, 0.0))
+                (norm(np.maximum(np.abs(y - c) - r, 0.0))
                  + min(np.max(np.abs(y - c) - r), 0.0))).reshape(-1, 1)
 
             # (but not the Jacobian)
@@ -114,6 +200,7 @@ class CollisionAvoidanceBox(RMPLeaf):
                 p_in = np.zeros((np.size(c), 1))
                 p_in[np.argmax(p_min_r)][0] = -int(np.all(np.less(p_min_r, 0)))
                 return ((p_out + p_in) * np.sign(y - c)).T
+
             self.J = J
 
             # ... and J dot
@@ -123,8 +210,9 @@ class CollisionAvoidanceBox(RMPLeaf):
                 norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
                 fp_g = np.divide(y_dot, norm_p_min_r, out=np.zeros_like(y_dot), where=norm_p_min_r != 0)
                 p_fg = np.dot(p_min_r.T, y_dot) \
-                    * np.divide(p_min_r, p_min_r3, out=np.zeros_like(p_min_r), where=p_min_r3 != 0)
+                       * np.divide(p_min_r, p_min_r3, out=np.zeros_like(p_min_r), where=p_min_r3 != 0)
                 return ((fp_g - p_fg) * np.sign(y - c)).T
+
             self.J_dot = J_dot
 
         def RMP_func(x, x_dot):
@@ -156,13 +244,14 @@ class CollisionAvoidanceBox(RMPLeaf):
             # remember: this is modified a TON
             f = np.minimum(np.maximum(f, - 1e10), 1e10)
 
-            #print(self.name + " f: " + str(f))
-            #print(self.name + " M: " + str(M))
-            #print(self.name + " g: " + str(g))
+            # print(self.name + " f: " + str(f))
+            # print(self.name + " M: " + str(M))
+            # print(self.name + " g: " + str(g))
 
             return (f, M)
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
+
 
 class GoalAttractorUni(RMPLeaf):
     """
@@ -182,11 +271,13 @@ class GoalAttractorUni(RMPLeaf):
         def RMP_func(x, x_dot):
             x_norm = norm(x)
 
+            # gamma(x) in RMPFlow paper
             beta = np.exp(- x_norm ** 2 / 2 / (sigma ** 2))
             w = (w_u - w_l) * beta + w_l
             s = (1 - np.exp(-2 * alpha * x_norm)) / (1 + np.exp(
                 -2 * alpha * x_norm))
 
+            # this is potential suggested in RMPFlow appendix
             G = np.eye(N) * w
             if x_norm > tol:
                 grad_Phi = s / x_norm * w * x * gain
@@ -195,10 +286,14 @@ class GoalAttractorUni(RMPLeaf):
             Bx_dot = eta * w * x_dot
             grad_w = - beta * (w_u - w_l) / sigma ** 2 * x
 
+            # since gradient is simple, we xi is hand-computed,
+            # M_stretch is a bit more complicated, we'll be using
+            # a differentiation library like AutoGrad
             x_dot_norm = norm(x_dot)
             xi = -0.5 * (x_dot_norm ** 2 * grad_w - 2 *
                          np.dot(np.dot(x_dot, x_dot.T), grad_w))
 
+            # no dependence on velocity, so upper-case XI = 0
             M = G
             f = - grad_Phi - Bx_dot - xi
 
@@ -207,6 +302,8 @@ class GoalAttractorUni(RMPLeaf):
             return (f, M)
 
         RMPLeaf.__init__(self, name, parent, None, psi, J, J_dot, RMP_func)
+
+    # TODO: implement M_stretch for more obstacle-heavy environments
 
     def update_goal(self, y_g):
         """
