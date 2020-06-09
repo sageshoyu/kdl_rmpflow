@@ -5,12 +5,8 @@ import numpy as np
 import PyKDL as kdl
 
 
-class KDLFlatRMPNode(RMPNode):
-    def __init__(self, name, parent, urdf_path, base_link, end_link):
-        # now we construct the end-effector node from urdf
-        # load URDF
-        robot = u_parser.from_xml_file(urdf_path)
-        _, tree = k_parser.treeFromUrdfModel(robot)
+class KDLRMPNode(RMPNode):
+    def __init__(self, name, parent, tree, base_link, end_link):
         self.chain = tree.getChain(base_link, end_link)
 
         # define kinematics solvers
@@ -22,7 +18,9 @@ class KDLFlatRMPNode(RMPNode):
         def psi(q):
             p_frame = kdl.Frame()
             jnt_q = np_to_jnt_arr(q)
-            self.pos_solver.JntToCart(jnt_q, p_frame)
+            e = self.pos_solver.JntToCart(jnt_q, p_frame)
+            if e != 0:
+                print("KDL SOLVER ERROR: " + str(e))
             p = p_frame.p
             return np.array([[p.x(), p.y(), p.z()]]).T
 
@@ -50,7 +48,25 @@ class KDLFlatRMPNode(RMPNode):
             self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
             return jac_to_np(jacd)
 
-        super().__init__(name, parent, psi, J, J_dot)
+        super().__init__(name, parent, psi, J, J_dot, verbose=True)
+
+
+class ProjectionNode(RMPNode):
+    def __init__(self, name, parent, param_map):
+        # construct matrix map, this is for object creation so performance
+        # is less of a concern
+        one_map = param_map.astype('int32')
+        mat = np.zeros((np.sum(one_map), one_map.size), dtype='float64')
+        jacd = np.zeros_like(mat)
+
+        i_mat = 0
+        for i in range(0, one_map.size):
+            if one_map[i] == 1:
+                mat[i_mat][i] = 1
+                i_mat += 1
+
+        psi = lambda y: np.dot(mat, y)
+        super().__init__(name, parent, psi, lambda x: mat, lambda x, xd: jacd)
 
 
 def np_to_jnt_arr(arr):
