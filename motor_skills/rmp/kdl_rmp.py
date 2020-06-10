@@ -48,7 +48,7 @@ class KDLRMPNode(RMPNode):
             self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
             return jac_to_np(jacd)
 
-        super().__init__(name, parent, psi, J, J_dot, verbose=True)
+        super().__init__(name, parent, psi, J, J_dot, verbose=False)
 
 
 class ProjectionNode(RMPNode):

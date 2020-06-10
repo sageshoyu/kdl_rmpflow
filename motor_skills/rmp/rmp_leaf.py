@@ -7,7 +7,7 @@ import numpy as np
 from numpy.linalg import norm
 
 import jax.numpy as jnp
-from jax import grad, jit
+from jax import grad, jit, vmap
 
 
 class CollisionAvoidanceGeorgia(RMPLeaf):
@@ -42,8 +42,6 @@ class CollisionAvoidanceGeorgia(RMPLeaf):
                  + 1 / norm(y - c) * np.eye(N))) / R
 
         def RMP_func(x, x_dot):
-            print(self.name + " x: " + str(x))
-            print(self.name + " x_dot: " + str(x_dot))
             # if inside obstacle, set w to HIGH value to PULL OUT
             if x < 0:
                 w = 1e10
@@ -121,8 +119,6 @@ class CollisionAvoidancePaper(RMPLeaf):
 
         # computations done in Jax and returne din numpy
         def RMP_func(x, x_dot):
-            print(self.name + " x: " + str(x))
-            print(self.name + " x_dot: " + str(x_dot))
 
             x = x[0][0]
             x_dot = x_dot[0][0]
@@ -216,8 +212,6 @@ class CollisionAvoidanceBox(RMPLeaf):
             self.J_dot = J_dot
 
         def RMP_func(x, x_dot):
-            print(self.name + " x: " + str(x))
-            print(self.name + " x_dot: " + str(x_dot))
 
             # if inside obstacle, set w to HIGH value to PULL OUT
             if x < 0:
@@ -297,7 +291,6 @@ class GoalAttractorUni(RMPLeaf):
             M = G
             f = - grad_Phi - Bx_dot - xi
 
-            print(self.name + " f: " + str(f))
 
             return (f, M)
 
@@ -340,26 +333,37 @@ class Damper(RMPLeaf):
 
 
 class JointLimiter(RMPLeaf):
-    def __init__(self, name, parent, jnt_bounds, x_0, lam, sigma, nu_p, nu_d):
+    def __init__(self, name, parent, jnt_bounds, x_0, lam=0.01, sigma=1, nu_p=1e-5, nu_d=1e-5):
         psi = lambda y: y
         J = lambda y: np.eye(y.size)
         J_dot = lambda y, y_dot: np.zeros((y.size, y.size))
 
+        l_l = jnp.asarray(jnt_bounds[:, [0]])
+        l_u = jnp.asarray(jnt_bounds[:, [1]])
+
+        def d(q, qd, ll_l, ll_u):
+            s = (q - ll_l) / (ll_u - ll_l)
+            d = 4 * s * (1 - s)
+            alpha_l = 1 - jnp.exp(-jnp.minimum(qd, 0) ** 2 / 2 / sigma ** 2)
+            alpha_u = 1 - jnp.exp(-jnp.maximum(qd, 0) ** 2 / 2 / sigma ** 2)
+            return (s * (alpha_u * d + (1 - alpha_u)) + (1 - s) * (alpha_l * d + (1 - alpha_l))) ** -2
+
+
+        grad_d = vmap(grad(d, argnums=0), in_axes=(0, 0, 0, 0), out_axes=0)
+
         def RMP_func(x, x_dot):
-            l_l = jnt_bounds[:][0]
-            l_u = jnt_bounds[:][1]
+            x = jnp.asarray(x)
+            x_dot = jnp.asarray(x_dot)
 
-            def d(q, qd):
-                s = (q - l_l) / (l_u - l_l)
-                d = 4 * s * (1 - s)
-                alpha_l = 1 - jnp.exp(-jnp.minimum(qd, 0) / 2 / sigma ** 2)
-                alpha_u = 1 - jnp.exp(-jnp.maximum(qd, 0) / 2 / sigma ** 2)
-                return (s * (alpha_u * d + (1 - alpha_u)) + (1 - s)(alpha_l * d + (1 - alpha_l))) ** -2
+            M = lam * jnp.diag(d(x, x_dot, l_l, l_u).flatten())
+            # must flatten since jax can only evaluate scalars
+            xi = (0.5 * grad_d(x.flatten(), x_dot.flatten(), l_l.flatten(), l_u.flatten()).reshape(-1, 1) * x_dot ** 2)
 
-            M = lam * np.diag(d(x, x_dot).flatten())
-            xi = 0.5 * grad(d, argnums=0)(x, x_dot) * x_dot ** 2
-            f = np.dot(M, nu_p * (x_0 - x) - nu_d * x_dot) - xi
+            f = jnp.dot(M, nu_p * (x_0 - x) - nu_d * x_dot) - xi
 
-            return (f, M)
+            # print(self.name + " f: " + str(f))
+            # print(self.name + " M: " + str(M))
 
-        super().__init__(self, name, parent, psi, J, J_dot, RMP_func)
+            return (np.asarray(f), np.asarray(M))
+
+        super().__init__(name, parent, None, psi, J, J_dot, RMP_func)
