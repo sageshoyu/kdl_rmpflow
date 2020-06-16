@@ -117,7 +117,6 @@ class CollisionAvoidance(RMPLeaf):
         self.u = lambda y_dot: epsilon + (1.0 - jnp.exp(-y_dot ** 2 / 2.0 / sigma ** 2) if y_dot < 0 else 0.0)
         self.grad_u = grad(self.u)
 
-        # computations done in Jax and returne din numpy
         def RMP_func(x, x_dot):
 
             x = x[0][0]
@@ -333,7 +332,7 @@ class Damper(RMPLeaf):
 
 
 class JointLimiter(RMPLeaf):
-    def __init__(self, name, parent, jnt_bounds, x_0, lam=0.01, sigma=1, nu_p=1e-5, nu_d=1e-5):
+    def __init__(self, name, parent, jnt_bounds, x_0, lam=0.01, sigma=0.1, nu_p=1e-5, nu_d=1e-5):
         psi = lambda y: y
         J = lambda y: np.eye(y.size)
         J_dot = lambda y, y_dot: np.zeros((y.size, y.size))
@@ -347,7 +346,6 @@ class JointLimiter(RMPLeaf):
             alpha_l = 1 - jnp.exp(-jnp.minimum(qd, 0) ** 2 / 2 / sigma ** 2)
             alpha_u = 1 - jnp.exp(-jnp.maximum(qd, 0) ** 2 / 2 / sigma ** 2)
             return (s * (alpha_u * d + (1 - alpha_u)) + (1 - s) * (alpha_l * d + (1 - alpha_l))) ** -2
-
 
         grad_d = vmap(grad(d, argnums=0), in_axes=(0, 0, 0, 0), out_axes=0)
 
