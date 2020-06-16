@@ -1,4 +1,5 @@
 from motor_skills.rmp.rmp import RMPRoot, RMPNode
+from kdl_parser_py import urdf as k_parser
 import numpy as np
 import PyKDL as kdl
 
@@ -89,6 +90,7 @@ def jac_to_np(jac):
     return np_jac
 
 
+# untested
 def rmptree_from_chain(tree, chain):
     # find all directly-actuated segments (in order of chain)
     mov_segs = []
@@ -122,8 +124,34 @@ def tree_from_robot(robot):
     jnt_names = list(map(lambda j: j.name, jnts))
 
     # find all actuated link names
+    # ASSUMPTION: joints are listed the same way as links in both mujoco xml and urdf
     link_names = [robot.joint_map[jnt_name].child for jnt_name in jnt_names]
 
     # construct RMP bush
     root = RMPRoot('root')
-    pass
+
+    # using link names, construct RMP bush
+    qlen = len(link_names)
+    leaf_dict = {}
+    proj_dict = {}
+    _, tree = k_parser.treeFromUrdfModel(robot)
+
+    # construct branch for each segment
+    for i in range(1, qlen + 1):
+        seg_name = link_names[i - 1]
+
+        # compute which joint angles should be available to node
+        # first find parent proj vect
+        proj_vect = np.copy(proj_dict.get(robot.parent_map[seg_name][1], np.array([0]*qlen)))
+
+        # index represents actuator joint angle
+        proj_vect[i - 1] = 1
+
+        # store in dictionary for child link's reference
+        proj_dict[seg_name] = proj_vect
+
+        proj_node = ProjectionNode('proj ' + seg_name, root, proj_vect)
+        seg_node = KDLRMPNode(seg_name, proj_node, tree, 'world', seg_name)
+        leaf_dict[seg_name] = seg_node
+
+    return root, leaf_dict
