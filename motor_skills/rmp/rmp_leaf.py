@@ -78,7 +78,7 @@ class CollisionAvoidanceGeorgia(RMPLeaf):
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
 
-class CollisionAvoidancePaper(RMPLeaf):
+class CollisionAvoidance(RMPLeaf):
     """
     Obstacle avoidance RMP leaf, but with recommendations from the original RMPFlow
     paper

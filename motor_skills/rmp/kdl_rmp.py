@@ -1,6 +1,4 @@
-from motor_skills.rmp.rmp import RMPNode
-from urdf_parser_py.urdf import URDF as u_parser
-from kdl_parser_py import urdf as k_parser
+from motor_skills.rmp.rmp import RMPRoot, RMPNode
 import numpy as np
 import PyKDL as kdl
 
@@ -89,3 +87,43 @@ def jac_to_np(jac):
             np_jac[r][c] = c_twst[r]
 
     return np_jac
+
+
+def rmptree_from_chain(tree, chain):
+    # find all directly-actuated segments (in order of chain)
+    mov_segs = []
+    for i in range(0, chain.getNrOfSegments()):
+        seg = chain.getSegment(i)
+        jnt = seg.getJoint()
+        if (jnt.getType() != getattr(kdl.Joint, 'None')):
+            mov_segs.append(seg.getName())
+
+    # length of state vect is # of actuated joints
+    qlen = len(mov_segs)
+
+    # construct root
+    root = RMPRoot('root')
+
+    leaf_dict = {}
+    # construct branch for each segment
+    for i in range(1, qlen + 1):
+        seg_name = mov_segs[i - 1]
+        proj_node = ProjectionNode('proj ' + seg_name, root, np.array([1] * i + [0] * (qlen - i)))
+        seg_node = KDLRMPNode('name ' + seg_name, proj_node, tree, 'world', seg_name)
+        leaf_dict[seg_name] = seg_node
+
+    return root, leaf_dict
+
+
+def tree_from_robot(robot):
+    # find all actuated joint names
+    flatten = lambda l: [item for sublist in l for item in sublist]
+    jnts = flatten(list(map(lambda t: t.joints, robot.transmissions)))
+    jnt_names = list(map(lambda j: j.name, jnts))
+
+    # find all actuated link names
+    link_names = [robot.joint_map[jnt_name].child for jnt_name in jnt_names]
+
+    # construct RMP bush
+    root = RMPRoot('root')
+    pass
