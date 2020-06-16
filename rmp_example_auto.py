@@ -7,7 +7,7 @@ from motor_skills.rmp.rmp import RMPRoot
 from motor_skills.rmp.kdl_rmp import KDLRMPNode
 from motor_skills.rmp.kdl_rmp import ProjectionNode
 from urdf_parser_py.urdf import URDF as u_parser
-from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection
+from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, kdl_node_array
 import motor_skills.rmp.rmp_leaf as leaves
 
 # %%
@@ -31,22 +31,23 @@ link5_pos = PositionProjection("link5_pos", links['j2s6s300_link_5'])
 link6_pos = PositionProjection("link6_pos", links['j2s6s300_link_6'])
 
 link6_proj = ProjectionNode("link6_proj", root, np.array([1]*6 + [0]*6))
-link6_ext = KDLRMPNode("link6_ext", link6_proj, robot, 'world','j2s6s300_link_6', trans=np.array([0, 0, -0.1]).reshape(-1, 1))
-link6_ext_pos = PositionProjection("link6_ext_pos", link6_ext)
+link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
+                            spacing=0.2, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
+link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for link6_ext in link6_exts]
 
 fing1_pos = PositionProjection("fing1_pos", links['j2s6s300_link_finger_1'])
 fingtip1_pos = PositionProjection("fingtip1_pos", links['j2s6s300_link_finger_tip_1'])
 
-atrc = leaves.GoalAttractorUni("jaco_attractor", link6_ext_pos, np.array([target_pos]).T, gain=20)
+atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[0], np.array([target_pos]).T, gain=20)
 
-obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
-obst1 = leaves.CollisionAvoidance("jaco_avoider1", link6_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
-obst2 = leaves.CollisionAvoidance("jaco_avoider2", fing1_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
-obst3 = leaves.CollisionAvoidance("jaco_avoider3", fingtip1_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
+# obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
+#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
+# obst1 = leaves.CollisionAvoidance("jaco_avoider1", link6_pos, None,
+#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
+# obst2 = leaves.CollisionAvoidance("jaco_avoider2", fing1_pos, None,
+#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
+# obst3 = leaves.CollisionAvoidance("jaco_avoider3", fingtip1_pos, None,
+#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
 
 jnts = ['j2s6s300_joint_1',
         'j2s6s300_joint_2',

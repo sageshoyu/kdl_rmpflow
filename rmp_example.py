@@ -70,7 +70,7 @@ def get_lims(name):
 
 
 lims = np.array(list(map(get_lims, jnts)))
-lims[1] = [np.pi - 0.2, np.pi + 0.2]
+#lims[1] = [np.pi - 0.2, np.pi + 0.2]
 cent = np.mean(lims, axis=1).reshape(-1, 1)
 jnt_lim = leaves.JointLimiter("jaco_jnt_lims", root, lims, cent, lam=0.01)
 

@@ -5,7 +5,7 @@ import PyKDL as kdl
 
 
 class KDLRMPNode(RMPNode):
-    def __init__(self, name, parent, robot, base_link, end_link, trans=np.zeros((3, 1))):
+    def __init__(self, name, parent, robot, base_link, end_link, offset=np.zeros((3, 1))):
         _, tree = k_parser.treeFromUrdfModel(robot)
         self.chain = tree.getChain(base_link, end_link)
 
@@ -16,7 +16,7 @@ class KDLRMPNode(RMPNode):
 
         # forward kinematics
         def psi(q):
-            base = np_to_vect(trans)
+            base = np_to_vect(offset)
             p_frame = kdl.Frame()
             jnt_q = np_to_jnt_arr(q)
             e = self.pos_solver.JntToCart(jnt_q, p_frame)
@@ -29,7 +29,7 @@ class KDLRMPNode(RMPNode):
         # Jacobian for forward kinematics
         def J(q):
             # set of solver inputs
-            base = np_to_vect(trans)
+            base = np_to_vect(offset)
             nq = np.size(q)
             jnt_q = np_to_jnt_arr(q)
             jac = kdl.Jacobian(nq)
@@ -42,7 +42,7 @@ class KDLRMPNode(RMPNode):
         # Jacobian time-derivative of forward kinematics
         def J_dot(q, qd):
             # set solver inputs
-            base = np_to_vect(trans)
+            base = np_to_vect(offset)
             nq = np.size(q)
             jnt_q = np_to_jnt_arr(q)
             jnt_qd = np_to_jnt_arr(qd)
@@ -146,3 +146,14 @@ def rmp_from_urdf(robot):
         leaf_dict[seg_name] = seg_node
 
     return root, leaf_dict
+
+
+def kdl_node_array(name, parent, robot, base_link, end_link, spacing, num, link_dir, skip=0):
+    unit_dir = link_dir / np.linalg.norm(link_dir)
+    nodes = []
+    for i in range(skip, num):
+        nodes.append(KDLRMPNode(name + str(i), parent, robot, base_link, end_link, offset=unit_dir * spacing * i))
+
+    return nodes
+
+
