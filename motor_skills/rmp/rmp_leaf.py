@@ -77,7 +77,8 @@ class CollisionAvoidanceGeorgia(RMPLeaf):
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
-
+# TODO: generalize this class and just give distance funcs + Jacobians (RMPFunc is
+# repeated three times at this point)
 class CollisionAvoidance(RMPLeaf):
     """
     Obstacle avoidance RMP leaf, but with recommendations from the original RMPFlow
@@ -210,6 +211,88 @@ class CollisionAvoidanceBox(RMPLeaf):
                 q_dot = np.sign(p) * p_dot
                 max_dot = (q > 0) * q_dot
                 return (np.sign(p) * (max_dot / sdf + np.sum(np.maximum(q, 0.0) * max_dot) / sdf ** 5)).T
+
+        self.w = lambda y: max(r_w - y, 0) / (y - R) if y >= 0 else 1e10
+        self.grad_w = grad(self.w)
+
+        self.u = lambda y_dot: epsilon + (1.0 - jnp.exp(-y_dot ** 2 / 2.0 / sigma ** 2) if y_dot < 0 else 0.0)
+        self.grad_u = grad(self.u)
+
+        def RMP_func(x, x_dot):
+
+            x = x[0][0]
+            x_dot = x_dot[0][0]
+
+            w_x = self.w(x)
+            dw_x = self.grad_w(x)
+
+            # epsilon is the constant value when moving away from the obstacle
+            u_xd = self.u(x_dot)
+
+            g = w_x * u_xd
+
+            du_xd = self.grad_u(x_dot)
+
+            grad_Phi = alpha * w_x * dw_x
+            xi = 0.5 * x_dot ** 2 * u_xd * dw_x
+
+            # upper-case xi calculation is included here
+            M = g + 0.5 * x_dot * w_x * du_xd
+            M = jnp.minimum(jnp.maximum(M, - 1e5), 1e5)
+
+            Bx_dot = eta * g * x_dot
+
+            f = - grad_Phi - xi - Bx_dot
+            # remember: this is modified a TON
+            f = jnp.minimum(jnp.maximum(f, - 1e10), 1e10)
+
+            # print(self.name + " f: " + str(f))
+            # print(self.name + " M: " + str(M))
+            # print(self.name + " g: " + str(g))
+            print(self.name + " x:" + str(x))
+            print(self.name + " xd: " + str(x_dot))
+
+            # convert from jax array to numpy array and return
+            return (np.asarray(f), np.asarray(M))
+
+        RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
+
+
+# todo: policy currently unstable - need to check math (use auto-differentiation library like Jax?)
+class CollisionAvoidancePlane(RMPLeaf):
+    """
+    Obstacle avoidance RMP leaf
+    """
+    def __init__(self, name, parent, parent_param, c, R, n=np.array([[0, 0, 1]]).T, epsilon=0.2, alpha=1e-5, eta=0, r_w=0.07, sigma=0.5):
+
+        # normalize normal in case it hasn't already
+        n = n / norm(n)
+        self.R = R
+        self.alpha = alpha
+        self.eta = eta
+        self.epsilon = epsilon
+
+        if parent_param:
+            psi = None
+            J = None
+            J_dot = None
+
+        else:
+            if c.ndim == 1:
+                c = c.reshape(-1, 1)
+
+            N = c.size
+
+            def psi(y):
+                return np.dot(n.T, y - c) - R
+
+            # (but not the Jacobian)
+            # leveraged the Jacobian flavor of chain rule here
+            def J(y):
+                return n.T
+            # ... and J dot (this was done by multiplying out
+            def J_dot(y, y_dot):
+                return np.zeros((3,1))
 
         self.w = lambda y: max(r_w - y, 0) / (y - R) if y >= 0 else 1e10
         self.grad_w = grad(self.w)
