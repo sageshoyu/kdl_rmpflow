@@ -155,7 +155,6 @@ class CollisionAvoidance(RMPLeaf):
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
 
-# todo: policy currently unstable - need to check math (use auto-differentiation library like Jax?)
 class CollisionAvoidanceBox(RMPLeaf):
     """
     Obstacle avoidance RMP leaf
@@ -250,12 +249,6 @@ class CollisionAvoidanceBox(RMPLeaf):
             f = - grad_Phi - xi - Bx_dot
             # remember: this is modified a TON
             f = jnp.minimum(jnp.maximum(f, - 1e10), 1e10)
-
-            # print(self.name + " f: " + str(f))
-            # print(self.name + " M: " + str(M))
-            # print(self.name + " g: " + str(g))
-            print(self.name + " x:" + str(x))
-            print(self.name + " xd: " + str(x_dot))
 
             # convert from jax array to numpy array and return
             return (np.asarray(f), np.asarray(M))

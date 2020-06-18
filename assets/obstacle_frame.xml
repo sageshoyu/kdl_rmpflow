@@ -1,0 +1,17 @@
+<mujoco model="obstacles">
+    <body name="target" pos="-0.42 -0.45 0.55" euler="0 0 0">
+        <geom size="0.01 0.01 0.01" type="sphere" rgba="0 0 1 1" contype="7" conaffinity="8"/>
+    </body>
+    <body name="frame_right" pos="-0.62 -0.3 0.4" euler="0 0 0">
+        <geom size="0.05 0.05 0.10" type="box" rgba="1 0 0 1" contype="7" conaffinity="8"/>
+    </body>
+    <body name="frame_left" pos="-0.22 -0.3 0.4" euler="0 0 0">
+        <geom size="0.05 0.05 0.10" type="box" rgba="1 0 0 1" contype="7" conaffinity="8"/>
+    </body>
+    <body name="frame_bot" pos="-0.42 -0.3 0.20" euler="0 0 0">
+        <geom size="0.10 0.05 0.05" type="box" rgba="1 0 0 1" contype="7" conaffinity="8"/>
+    </body>
+    <body name="frame_top" pos="-0.42 -0.3 0.60" euler="0 0 0">
+        <geom size="0.10 0.05 0.05" type="box" rgba="1 0 0 1" contype="7" conaffinity="8"/>
+    </body>
+</mujoco>
