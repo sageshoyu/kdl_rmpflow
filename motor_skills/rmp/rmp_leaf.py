@@ -160,7 +160,8 @@ class CollisionAvoidanceBox(RMPLeaf):
     """
     Obstacle avoidance RMP leaf
     """
-    def __init__(self, name, parent, parent_param, c, r, R, xyz=np.zeros((3, 1)), epsilon=0.2, alpha=1e-5, eta=0, r_w=0.07, sigma=0.5):
+    def __init__(self, name, parent, parent_param, c, r, R,
+                 xyz=np.zeros((3, 1)), epsilon=0.2, alpha=1e-5, eta=0, r_w=0.07, sigma=0.5):
         r = np.abs(r)
         rot = Rot.from_euler('xyz', xyz.flatten())
 
@@ -188,29 +189,33 @@ class CollisionAvoidanceBox(RMPLeaf):
 
             def psi(y):
                 q = np.abs(np.dot(rot_inv, y - c)) - r
-                return np.array(norm(np.maximum(q, 0.0)) + min(np.max(q), 0.0) - R).reshape(-1, 1)
+                return np.array(norm(np.maximum(q, 0.0))).reshape(-1, 1)
 
             # (but not the Jacobian)
             # leveraged the Jacobian flavor of chain rule here
             def J(y):
                 p = np.dot(rot_inv, y - c)
                 q = np.abs(p) - r
-                sdf = norm(np.maximum(q, 0.0)) + min(np.max(q), 0.0)
+                sdf = norm(np.maximum(q, 0.0))
                 return np.dot(np.repeat(1 / sdf, 3).reshape(1, 3),
                        np.dot(np.diag(np.maximum(q, 0.0).flatten()),
                               np.dot(np.diag(np.sign(p).flatten()),
                                      rot_inv)))
 
-            # ... and J dot (this was done by multiplying out
+            # ... and J dot (this was done by multiplying out Jacobian and using quotient rule)
             def J_dot(y, y_dot):
                 p = np.dot(rot_inv, y - c)
                 q = np.abs(p) - r
-                sdf = norm(np.maximum(q, 0.0)) + min(np.max(q), 0.0)
+                sdf = norm(np.maximum(q, 0.0))
 
                 p_dot = np.dot(rot_inv, y_dot)
                 q_dot = np.sign(p) * p_dot
                 max_dot = (q > 0) * q_dot
-                return (np.sign(p) * (max_dot / sdf + np.sum(np.maximum(q, 0.0) * max_dot) / sdf ** 5)).T
+
+                sdf_dot = np.sum(np.maximum(q, 0.0) * max_dot) / sdf
+                return np.dot(
+                    (np.sign(p) * (max_dot * sdf - sdf_dot * np.maximum(q, 0.0)) / sdf ** 2).T,
+                    rot_inv)
 
         self.w = lambda y: max(r_w - y, 0) / (y - R) if y >= 0 else 1e10
         self.grad_w = grad(self.w)
