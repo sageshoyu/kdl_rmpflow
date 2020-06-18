@@ -258,10 +258,9 @@ class CollisionAvoidanceBox(RMPLeaf):
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
 
-# todo: policy currently unstable - need to check math (use auto-differentiation library like Jax?)
 class CollisionAvoidancePlane(RMPLeaf):
     """
-    Obstacle avoidance RMP leaf
+    Obstacle avoidance RMP leaf for infinite plane (orientation-sensitive)
     """
     def __init__(self, name, parent, parent_param, c, R, n=np.array([[0, 0, 1]]).T, epsilon=0.2, alpha=1e-5, eta=0, r_w=0.07, sigma=0.5):
 
@@ -292,7 +291,7 @@ class CollisionAvoidancePlane(RMPLeaf):
                 return n.T
             # ... and J dot (this was done by multiplying out
             def J_dot(y, y_dot):
-                return np.zeros((3,1))
+                return np.zeros((1,3))
 
         self.w = lambda y: max(r_w - y, 0) / (y - R) if y >= 0 else 1e10
         self.grad_w = grad(self.w)
