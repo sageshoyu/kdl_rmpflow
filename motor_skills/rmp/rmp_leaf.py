@@ -4,10 +4,10 @@
 
 from .rmp import RMPNode, RMPRoot, RMPLeaf
 import numpy as np
-from numpy.linalg import norm
-
+from numpy.linalg import norm, inv
+from scipy.spatial.transform import Rotation as Rot
 import jax.numpy as jnp
-from jax import grad, jit, vmap
+from jax import grad, jit, vmap, jacfwd
 
 
 class CollisionAvoidanceGeorgia(RMPLeaf):
@@ -91,7 +91,6 @@ class CollisionAvoidance(RMPLeaf):
         self.alpha = alpha
         self.eta = eta
         self.epsilon = epsilon
-        self.r_w = r_w
 
         if parent_param:
             psi = None
@@ -111,7 +110,7 @@ class CollisionAvoidance(RMPLeaf):
                 (-1 / norm(y - c) ** 3 * np.dot((y - c), (y - c).T)
                  + 1 / norm(y - c) * np.eye(N)))
 
-        self.w = lambda y: max(self.r_w - y, 0) / (y - R) if y >= 0 else 1e10
+        self.w = lambda y: max(r_w - y, 0) / (y - R) if y >= 0 else 1e10
         self.grad_w = grad(self.w)
 
         self.u = lambda y_dot: epsilon + (1.0 - jnp.exp(-y_dot ** 2 / 2.0 / sigma ** 2) if y_dot < 0 else 0.0)
@@ -160,10 +159,13 @@ class CollisionAvoidanceBox(RMPLeaf):
     """
     Obstacle avoidance RMP leaf
     """
-
-    def __init__(self, name, parent, parent_param, c, r, epsilon=0.2,
-                 alpha=1e-5, eta=0):
+    def __init__(self, name, parent, parent_param, c, r, R, xyz=np.zeros((3, 1)), epsilon=0.2, alpha=1e-5, eta=0, r_w=0.07, sigma=0.5):
         r = np.abs(r)
+        rot = Rot.from_euler('xyz', xyz.flatten())
+
+        # rotation transformation from global frame to box
+        rot_inv = inv(rot.as_matrix())
+        self.R = R
         self.alpha = alpha
         self.eta = eta
         self.epsilon = epsilon
@@ -178,70 +180,79 @@ class CollisionAvoidanceBox(RMPLeaf):
                 c = c.reshape(-1, 1)
 
             N = c.size
+
             # graphics people solved this one already:
             # https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
             # note: we normalize by R
 
-            # TODO: implement length, width, height normalization
-            psi = lambda y: np.array(
-                (norm(np.maximum(np.abs(y - c) - r, 0.0))
-                 + min(np.max(np.abs(y - c) - r), 0.0))).reshape(-1, 1)
+            def psi(y):
+                q = np.abs(np.dot(rot_inv, y - c)) - r
+                return np.array(norm(np.maximum(q, 0.0)) + min(np.max(q), 0.0) - R).reshape(-1, 1)
 
             # (but not the Jacobian)
+            # leveraged the Jacobian flavor of chain rule here
             def J(y):
-                p_min_r = np.maximum((np.abs(y - c) - r), 0.0)
-                norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
-                p_out = np.divide(p_min_r, norm_p_min_r, out=np.zeros_like(p_min_r), where=norm_p_min_r != 0)
-                p_in = np.zeros((np.size(c), 1))
-                p_in[np.argmax(p_min_r)][0] = -int(np.all(np.less(p_min_r, 0)))
-                return ((p_out + p_in) * np.sign(y - c)).T
+                p = np.dot(rot_inv, y - c)
+                q = np.abs(p) - r
+                sdf = norm(np.maximum(q, 0.0)) + min(np.max(q), 0.0)
+                return np.dot(np.repeat(1 / sdf, 3).reshape(1, 3),
+                       np.dot(np.diag(np.maximum(q, 0.0).flatten()),
+                              np.dot(np.diag(np.sign(p).flatten()),
+                                     rot_inv)))
 
-            self.J = J
-
-            # ... and J dot
+            # ... and J dot (this was done by multiplying out
             def J_dot(y, y_dot):
-                p_min_r = np.maximum((np.abs(y - c) - r), 0.0)
-                p_min_r3 = p_min_r ** 3
-                norm_p_min_r = np.array(norm(p_min_r), dtype=float).reshape(-1, 1)
-                fp_g = np.divide(y_dot, norm_p_min_r, out=np.zeros_like(y_dot), where=norm_p_min_r != 0)
-                p_fg = np.dot(p_min_r.T, y_dot) \
-                       * np.divide(p_min_r, p_min_r3, out=np.zeros_like(p_min_r), where=p_min_r3 != 0)
-                return ((fp_g - p_fg) * np.sign(y - c)).T
+                p = np.dot(rot_inv, y - c)
+                q = np.abs(p) - r
+                sdf = norm(np.maximum(q, 0.0)) + min(np.max(q), 0.0)
 
-            self.J_dot = J_dot
+                p_dot = np.dot(rot_inv, y_dot)
+                q_dot = np.sign(p) * p_dot
+                max_dot = (q > 0) * q_dot
+                return (np.sign(p) * (max_dot / sdf + np.sum(np.maximum(q, 0.0) * max_dot) / sdf ** 5)).T
+
+        self.w = lambda y: max(r_w - y, 0) / (y - R) if y >= 0 else 1e10
+        self.grad_w = grad(self.w)
+
+        self.u = lambda y_dot: epsilon + (1.0 - jnp.exp(-y_dot ** 2 / 2.0 / sigma ** 2) if y_dot < 0 else 0.0)
+        self.grad_u = grad(self.u)
 
         def RMP_func(x, x_dot):
 
-            # if inside obstacle, set w to HIGH value to PULL OUT
-            if x < 0:
-                w = 1e10
-                grad_w = 0
-            # if not, decrease pressure according to power of 2 (previously pwr of 4, too aggressive)
-            else:
-                w = 1.0 / x ** 2
-                grad_w = -2.0 / x ** 3
+            x = x[0][0]
+            x_dot = x_dot[0][0]
+
+            w_x = self.w(x)
+            dw_x = self.grad_w(x)
+
             # epsilon is the constant value when moving away from the obstacle
-            u = epsilon + np.minimum(0, x_dot) * x_dot
-            g = w * u
+            u_xd = self.u(x_dot)
 
-            grad_u = 2 * np.minimum(0, x_dot)
-            grad_Phi = alpha * w * grad_w
-            xi = 0.5 * x_dot ** 2 * u * grad_w
+            g = w_x * u_xd
 
-            M = g + 0.5 * x_dot * w * grad_u
-            M = np.minimum(np.maximum(M, - 1e5), 1e5)
+            du_xd = self.grad_u(x_dot)
+
+            grad_Phi = alpha * w_x * dw_x
+            xi = 0.5 * x_dot ** 2 * u_xd * dw_x
+
+            # upper-case xi calculation is included here
+            M = g + 0.5 * x_dot * w_x * du_xd
+            M = jnp.minimum(jnp.maximum(M, - 1e5), 1e5)
 
             Bx_dot = eta * g * x_dot
 
             f = - grad_Phi - xi - Bx_dot
             # remember: this is modified a TON
-            f = np.minimum(np.maximum(f, - 1e10), 1e10)
+            f = jnp.minimum(jnp.maximum(f, - 1e10), 1e10)
 
             # print(self.name + " f: " + str(f))
             # print(self.name + " M: " + str(M))
             # print(self.name + " g: " + str(g))
+            print(self.name + " x:" + str(x))
+            print(self.name + " xd: " + str(x_dot))
 
-            return (f, M)
+            # convert from jax array to numpy array and return
+            return (np.asarray(f), np.asarray(M))
 
         RMPLeaf.__init__(self, name, parent, parent_param, psi, J, J_dot, RMP_func)
 
@@ -289,7 +300,6 @@ class GoalAttractorUni(RMPLeaf):
             # no dependence on velocity, so upper-case XI = 0
             M = G
             f = - grad_Phi - Bx_dot - xi
-
 
             return (f, M)
 
