@@ -102,7 +102,7 @@
             </body>
         </body>
         <include file="../cameras.xml"/>
-        <include file="../obstacle_frame.xml"/>
+        <include file="../obstacles.xml"/>
     </worldbody>
     <actuator>
   		<!--  ================= Torque actuators (Weren't present in the URDF. Added seperately)================= /-->
