@@ -3,15 +3,15 @@ import motor_skills.core.mj_control as mjc
 from motor_skills.envs.mj_jaco import MjJacoEnv
 from motor_skills.rmp.kdl_rmp import ProjectionNode
 from urdf_parser_py.urdf import URDF as u_parser
-from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, KDLRMPNode
+from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, KDLRMPNode, kdl_node_array
 import motor_skills.rmp.rmp_leaf as leaves
 
 # %%
 env = MjJacoEnv(vis=True)
 
 # set the jaco arm to a stable(ish) position
-#env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0, 0, 0, 0, 0]
-env.sim.data.qpos[:6] = [3.5, 3, 1, 1, 1, 1]
+env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0, 0, 0, 0, 0]
+# env.sim.data.qpos[:6] = [3.5, 3, 1, 1, 1, 1]
 
 env.sim.data.qvel[:6] = [0, 0, 0, 0, 0, 0]
 
@@ -42,34 +42,41 @@ robot = u_parser.from_xml_file('assets/kinova_j2s6s300/ros-j2s6s300.xml')
 root, links = rmp_from_urdf(robot)
 
 # attach position nodes
-links_pos = {}
+collision_pts_pos = {}
 for name, node in links.items():
-    links_pos[name] = PositionProjection(name + "_pos", node)
+    collision_pts_pos[name] = PositionProjection(name + "_pos", node)
+
+# add line of position nodes through hand to dictionary
+link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
+link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
+                            spacing=0.05, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
+link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for link6_ext in link6_exts]
+
+# add to collision points position too
+for hand_pos in link6_exts_pos:
+    collision_pts_pos[hand_pos.name] = hand_pos
+
 
 # attach collision avoidance nodes (avoid the frame)
-for name, node in list(links_pos.items())[4:11]:
+for name, node in list(collision_pts_pos.items()):
     leaves.CollisionAvoidanceBox(name + "_right_avoider", node, None,
-                                 np.array([fright_pos]).T, np.array([[0.05, 0.05, 0.10]]).T / 2,
-                                 0.005, epsilon=0.0, eta=0, r_w = 0.05)
+                                 np.array([fright_pos]).T, np.array([[0.05, 0.05, 0.10]]).T,
+                                 0.005, epsilon=0.0, eta=0, r_w = 0.10)
 
     leaves.CollisionAvoidanceBox(name + "_left_avoider", node, None,
-                                 np.array([fleft_pos]).T, np.array([[0.05, 0.05, 0.10]]).T / 2,
-                                 0.005, epsilon=0.0, eta=0, r_w = 0.05)
+                                 np.array([fleft_pos]).T, np.array([[0.05, 0.05, 0.10]]).T,
+                                 0.005, epsilon=0.0, eta=0, r_w = 0.10)
 
     leaves.CollisionAvoidanceBox(name + "_bot_avoider", node, None,
-                                 np.array([fbot_pos]).T, np.array([[0.1, 0.05, 0.05]]).T / 2,
-                                 0.005, epsilon=0.0, eta=0, r_w = 0.05)
+                                 np.array([fbot_pos]).T, np.array([[0.1, 0.05, 0.05]]).T,
+                                 0.005, epsilon=0.0, eta=0, r_w = 0.10)
 
     leaves.CollisionAvoidanceBox(name + "_top_avoider", node, None,
-                                 np.array([ftop_pos]).T, np.array([[0.1, 0.05, 0.05]]).T / 2,
-                                 0.005, epsilon=0.0, eta=0, r_w=0.05)
+                                 np.array([ftop_pos]).T, np.array([[0.1, 0.05, 0.05]]).T,
+                                 0.005, epsilon=0.0, eta=0, r_w=0.10)
 
 # attract palm of hand to target
-link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
-link6_ext = KDLRMPNode("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
-                       offset=np.array([0, 0, -0.15]).reshape(3,1))
-link6_ext_pos = PositionProjection("link6_ext_pos", link6_ext)
-atrc = leaves.GoalAttractorUni("jaco_attractor", link6_ext_pos, np.array([target_pos]).T, gain=20)
+atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
 
 # include joint limits, biast towards center of each joint
 def get_lims(name):

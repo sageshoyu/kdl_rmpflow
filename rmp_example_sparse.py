@@ -39,43 +39,43 @@ fingtip1_pos = PositionProjection("fingtip1_pos", links['j2s6s300_link_finger_ti
 
 atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
 
-# obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
-#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
-# obst1 = leaves.CollisionAvoidance("jaco_avoider1", link6_pos, None,
-#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
-# obst2 = leaves.CollisionAvoidance("jaco_avoider2", fing1_pos, None,
-#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
-# obst3 = leaves.CollisionAvoidance("jaco_avoider3", fingtip1_pos, None,
-#                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
+obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
+                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+obst1 = leaves.CollisionAvoidance("jaco_avoider1", link6_pos, None,
+                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+obst2 = leaves.CollisionAvoidance("jaco_avoider2", fing1_pos, None,
+                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+obst3 = leaves.CollisionAvoidance("jaco_avoider3", fingtip1_pos, None,
+                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
 
 
 box_obst0 = leaves.CollisionAvoidanceBox("jaco_avoider_box0", link5_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
-                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
+                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst1 = leaves.CollisionAvoidanceBox("jaco_avoider_box1", link6_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
-                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
+                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst2 = leaves.CollisionAvoidanceBox("jaco_avoider_box2", fing1_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
-                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
+                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst3 = leaves.CollisionAvoidanceBox("jaco_avoider_box3", fingtip1_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
-                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
+                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst4 = leaves.CollisionAvoidanceBox("jaco_avoider_box4", link6_exts_pos[0], None,
-                                         np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
+                                         np.array([box_pos]).T, np.array([[0.07, 0.07, 0.05]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
 
 box_obst5 = leaves.CollisionAvoidanceBox("jaco_avoider_box5", link6_exts_pos[1], None,
-                                         np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
+                                         np.array([box_pos]).T, np.array([[0.07, 0.07, 0.05]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
 
