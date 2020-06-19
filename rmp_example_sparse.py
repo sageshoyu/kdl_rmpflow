@@ -31,13 +31,13 @@ link6_pos = PositionProjection("link6_pos", links['j2s6s300_link_6'])
 
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
 link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
-                            spacing=0.15, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
+                            spacing=0.05, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
 link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for link6_ext in link6_exts]
 
 fing1_pos = PositionProjection("fing1_pos", links['j2s6s300_link_finger_1'])
 fingtip1_pos = PositionProjection("fingtip1_pos", links['j2s6s300_link_finger_tip_1'])
 
-atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[0], np.array([target_pos]).T, gain=20)
+atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
 
 # obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
 #                                   np.array([obstacle_pos]).T, R=0.05, eta=3, epsilon=0.0)
@@ -65,6 +65,16 @@ box_obst2 = leaves.CollisionAvoidanceBox("jaco_avoider_box2", fing1_pos, None,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
 
 box_obst3 = leaves.CollisionAvoidanceBox("jaco_avoider_box3", fingtip1_pos, None,
+                                         np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
+                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
+
+box_obst4 = leaves.CollisionAvoidanceBox("jaco_avoider_box4", link6_exts_pos[0], None,
+                                         np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
+                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
+
+box_obst5 = leaves.CollisionAvoidanceBox("jaco_avoider_box5", link6_exts_pos[1], None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
                                          R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
