@@ -10,7 +10,7 @@ import motor_skills.rmp.rmp_leaf as leaves
 env = MjJacoEnv(vis=True)
 
 # set the jaco arm to a stable(ish) position
-# env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0, 0, 0, 0, 0]
+#env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0, 0, 0, 0, 0]
 env.sim.data.qpos[:6] = [3.5, 3, 1, 1, 1, 1]
 
 env.sim.data.qvel[:6] = [0, 0, 0, 0, 0, 0]
@@ -47,22 +47,22 @@ for name, node in links.items():
     links_pos[name] = PositionProjection(name + "_pos", node)
 
 # attach collision avoidance nodes (avoid the frame)
-for name, node in list(links_pos.items())[5:11]:
+for name, node in list(links_pos.items())[4:11]:
     leaves.CollisionAvoidanceBox(name + "_right_avoider", node, None,
                                  np.array([fright_pos]).T, np.array([[0.05, 0.05, 0.10]]).T / 2,
-                                 0.005, epsilon=0.0, eta=1, r_w = 0.1)
+                                 0.005, epsilon=0.0, eta=0, r_w = 0.05)
 
     leaves.CollisionAvoidanceBox(name + "_left_avoider", node, None,
                                  np.array([fleft_pos]).T, np.array([[0.05, 0.05, 0.10]]).T / 2,
-                                 0.005, epsilon=0.0, eta=1, r_w = 0.1)
+                                 0.005, epsilon=0.0, eta=0, r_w = 0.05)
 
     leaves.CollisionAvoidanceBox(name + "_bot_avoider", node, None,
                                  np.array([fbot_pos]).T, np.array([[0.1, 0.05, 0.05]]).T / 2,
-                                 0.005, epsilon=0.0, eta=1, r_w = 0.1)
+                                 0.005, epsilon=0.0, eta=0, r_w = 0.05)
 
     leaves.CollisionAvoidanceBox(name + "_top_avoider", node, None,
                                  np.array([ftop_pos]).T, np.array([[0.1, 0.05, 0.05]]).T / 2,
-                                 0.005, epsilon=0.0, eta=1, r_w=0.1)
+                                 0.005, epsilon=0.0, eta=0, r_w=0.05)
 
 # attract palm of hand to target
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
