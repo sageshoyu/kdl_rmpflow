@@ -80,9 +80,19 @@ class PositionProjection(ProjectionNode):
         super().__init__(name, parent, np.array([1, 1, 1, 0, 0, 0]))
 
 
-class OrientationProjection(ProjectionNode):
-    def __init(self, name, parent):
-        super().__init__(name, parent, np.array([0, 0, 0, 1, 1, 1]))
+class RotZProjection(ProjectionNode):
+    def __init__(self, name, parent):
+        super().__init__(name, parent, np.array([0, 0, 0, 1, 0, 0]))
+
+
+class RotYProjection(ProjectionNode):
+    def __init__(self, name, parent):
+        super().__init__(name, parent, np.array([0, 0, 0, 0, 1, 0]))
+
+
+class RotXProjection(ProjectionNode):
+    def __init__(self, name, parent):
+        super().__init__(name, parent, np.array([0, 0, 0, 0, 0, 1]))
 
 
 def np_to_vect(v):
@@ -108,6 +118,7 @@ def jac_to_np(jac):
             np_jac[r][c] = c_twst[r]
 
     return np_jac
+
 
 def rmp_from_urdf(robot):
     # find all actuated joint names
@@ -155,5 +166,3 @@ def kdl_node_array(name, parent, robot, base_link, end_link, spacing, num, link_
         nodes.append(KDLRMPNode(name + str(i), parent, robot, base_link, end_link, offset=unit_dir * spacing * i))
 
     return nodes
-
-

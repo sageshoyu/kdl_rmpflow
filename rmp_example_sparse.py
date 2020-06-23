@@ -5,7 +5,7 @@ import motor_skills.core.mj_control as mjc
 from motor_skills.envs.mj_jaco import MjJacoEnv
 from motor_skills.rmp.kdl_rmp import ProjectionNode
 from urdf_parser_py.urdf import URDF as u_parser
-from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, kdl_node_array
+from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, kdl_node_array, RotZProjection, RotYProjection, RotXProjection
 import motor_skills.rmp.rmp_leaf as leaves
 
 # %%
@@ -33,20 +33,26 @@ link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
 link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
                             spacing=0.05, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
 link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for link6_ext in link6_exts]
+link6_ext_rotz = RotZProjection("link6_ext_rotz", link6_exts[1])
+link6_ext_roty = RotYProjection("link6_ext_roty", link6_exts[1])
+link6_ext_rotx = RotXProjection("link6_ext_rotx", link6_exts[1])
 
 fing1_pos = PositionProjection("fing1_pos", links['j2s6s300_link_finger_1'])
 fingtip1_pos = PositionProjection("fingtip1_pos", links['j2s6s300_link_finger_tip_1'])
 
 atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
+#atrc_rotz = leaves.GoalAttractorUni("jaco_z_attractor", link6_ext_rotz, np.array([[0.0]]), gain=20, w_l=1)
+atrc_roty = leaves.GoalAttractorUni("jaco_y_attractor", link6_ext_roty, np.array([[0.0]]), gain=20, w_l=1)
+atrc_rotx = leaves.GoalAttractorUni("jaco_x_attractor", link6_ext_rotx, np.array([[0.0]]), gain=20, w_l=1)
 
 obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
 obst1 = leaves.CollisionAvoidance("jaco_avoider1", link6_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
 obst2 = leaves.CollisionAvoidance("jaco_avoider2", fing1_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
 obst3 = leaves.CollisionAvoidance("jaco_avoider3", fingtip1_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=2, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
 
 
 box_obst0 = leaves.CollisionAvoidanceBox("jaco_avoider_box0", link5_pos, None,
@@ -125,7 +131,7 @@ while True:
     # print('qpos: ' + str(env.sim.data.qpos[:6]))
     print('xpos: ' + str(env.sim.data.body_xpos[7]))
     print('qpos: ' + str(env.sim.data.qpos))
-    # quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
-    # r = R.from_quat(quat)
-    # print('rot: ' + str(r.as_euler('xyz', degrees=False)))
+    quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
+    r = R.from_quat(quat)
+    print('rot: ' + str(r.as_euler('xyz', degrees=False)))
     # print('qdd: ' + str(qdd))

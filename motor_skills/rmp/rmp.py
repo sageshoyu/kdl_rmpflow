@@ -9,7 +9,6 @@ class RMPNode:
     """
     A Generic RMP node
     """
-
     def __init__(self, name, parent, psi, J, J_dot, verbose=False):
         self.name = name
 
