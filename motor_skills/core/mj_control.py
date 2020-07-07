@@ -52,7 +52,6 @@ def pd(qdd, qd, q, sim, kp=None, kv=None, ndof=9):
     tau_prime = qdd + np.matmul(kp, e) + np.matmul(kv, ed)
     return np.matmul(m, tau_prime) + bias
 
-
 def jac(sim, body, ndof):
     """
     Computes Jacobian of body using q = sim.data.qpos, qdot = sim.data.qvel.

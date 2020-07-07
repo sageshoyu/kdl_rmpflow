@@ -14,6 +14,7 @@ env = MjJacoEnv(vis=True)
 # set the jaco arm to a stable(ish) position
 # env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0, 0, 0, 0, 0]
 env.sim.data.qpos[:6] = [2.5, 1, 1, 1, 1, 1]
+# env.sim.data.qpos[:6] = [2.8, 1.73, 1.605, 0.1, 1.18, 0]
 
 env.sim.data.qvel[:6] = [0, 0, 0, 0, 0, 0]
 
@@ -41,48 +42,48 @@ fing1_pos = PositionProjection("fing1_pos", links['j2s6s300_link_finger_1'])
 fingtip1_pos = PositionProjection("fingtip1_pos", links['j2s6s300_link_finger_tip_1'])
 
 atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
-#atrc_rotz = leaves.GoalAttractorUni("jaco_z_attractor", link6_ext_rotz, np.array([[0.0]]), gain=20, w_l=1)
-atrc_roty = leaves.GoalAttractorUni("jaco_y_attractor", link6_ext_roty, np.array([[0.0]]), gain=20, w_l=1)
-atrc_rotx = leaves.GoalAttractorUni("jaco_x_attractor", link6_ext_rotx, np.array([[0.0]]), gain=20, w_l=1)
+atrc_rotz = leaves.GoalAttractorUni("jaco_z_attractor", link6_ext_rotz, np.array([[0.0]]), gain=20, w_u=20, eta=2, alpha=2.5)
+atrc_roty = leaves.GoalAttractorUni("jaco_y_attractor", link6_ext_roty, np.array([[np.pi/2]]), gain=20, w_u=20, eta=2, alpha=2.5)
+atrc_rotx = leaves.GoalAttractorUni("jaco_x_attractor", link6_ext_rotx, np.array([[0.0]]), gain=20, w_u=20, eta=2, alpha=2.5)
 
 obst0 = leaves.CollisionAvoidance("jaco_avoider0", link5_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, r_w=0.1, eta=2, epsilon=0.0)
 obst1 = leaves.CollisionAvoidance("jaco_avoider1", link6_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, r_w=0.1, eta=2, epsilon=0.0)
 obst2 = leaves.CollisionAvoidance("jaco_avoider2", fing1_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, r_w=0.1, eta=2, epsilon=0.0)
 obst3 = leaves.CollisionAvoidance("jaco_avoider3", fingtip1_pos, None,
-                                  np.array([obstacle_pos]).T, R=0.05, eta=1, epsilon=0.0)
+                                  np.array([obstacle_pos]).T, R=0.05, r_w=0.1,  eta=2, epsilon=0.0)
 
 
 box_obst0 = leaves.CollisionAvoidanceBox("jaco_avoider_box0", link5_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
-                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         R=0.005, epsilon=0.0, r_w=0.07, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst1 = leaves.CollisionAvoidanceBox("jaco_avoider_box1", link6_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
-                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         R=0.005, epsilon=0.0, r_w=0.07, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst2 = leaves.CollisionAvoidanceBox("jaco_avoider_box2", fing1_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
-                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         R=0.005, epsilon=0.0, r_w=0.07, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst3 = leaves.CollisionAvoidanceBox("jaco_avoider_box3", fingtip1_pos, None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.01]]).T,
-                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         R=0.005, epsilon=0.0, r_w=0.07, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=2)
 
 box_obst4 = leaves.CollisionAvoidanceBox("jaco_avoider_box4", link6_exts_pos[0], None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.05]]).T,
-                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         R=0.005, epsilon=0.0, r_w=0.07, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
 
 box_obst5 = leaves.CollisionAvoidanceBox("jaco_avoider_box5", link6_exts_pos[1], None,
                                          np.array([box_pos]).T, np.array([[0.07, 0.07, 0.05]]).T,
-                                         R=0.005, epsilon=0.0, r_w=0.5, alpha=1e-5,
+                                         R=0.005, epsilon=0.0, r_w=0.07, alpha=1e-5,
                                          xyz=np.array([np.pi / 4] * 3).reshape(-1, 1), eta=3)
 
 jnts = ['j2s6s300_joint_1',

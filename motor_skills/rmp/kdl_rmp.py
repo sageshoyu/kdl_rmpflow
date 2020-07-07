@@ -24,7 +24,7 @@ class KDLRMPNode(RMPNode):
                 print("KDL SOLVER ERROR: " + str(e))
             p = p_frame * base
             Rz, Ry, Rx = p_frame.M.GetEulerZYX()
-            return np.array([[p.x(), p.y(), p.z(), Rz, Ry, Rx]]).T
+            return np.array([[p.x(), p.y(), p.z(), Rx, Ry, Rz]]).T
 
         # Jacobian for forward kinematics
         def J(q):
@@ -82,7 +82,7 @@ class PositionProjection(ProjectionNode):
 
 class RotZProjection(ProjectionNode):
     def __init__(self, name, parent):
-        super().__init__(name, parent, np.array([0, 0, 0, 1, 0, 0]))
+        super().__init__(name, parent, np.array([0, 0, 0, 0, 0, 1]))
 
 
 class RotYProjection(ProjectionNode):
@@ -92,11 +92,10 @@ class RotYProjection(ProjectionNode):
 
 class RotXProjection(ProjectionNode):
     def __init__(self, name, parent):
-        super().__init__(name, parent, np.array([0, 0, 0, 0, 0, 1]))
+        super().__init__(name, parent, np.array([0, 0, 0, 1, 0, 0]))
 
 
 def np_to_vect(v):
-    flat = v.flatten()
     return kdl.Vector(v[0], v[1], v[2])
 
 

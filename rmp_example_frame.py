@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 import motor_skills.core.mj_control as mjc
 from motor_skills.envs.mj_jaco import MjJacoEnv
 from motor_skills.rmp.kdl_rmp import ProjectionNode
@@ -66,9 +67,9 @@ collision_pts_pos[link5_ext_pos.name] = link5_ext_pos
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
 link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
                             spacing=0.05, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
-link6_rotx = RotXProjection("link6_rotx", link4_exts[1])
-link6_roty = RotYProjection("link6_roty", link4_exts[1])
-link6_rotz = RotZProjection("link6_rotz", link4_exts[1])
+link6_ext_rotx = RotXProjection("link6_rotx", link4_exts[1])
+link6_ext_roty = RotYProjection("link6_roty", link4_exts[1])
+link6_ext_rotz = RotZProjection("link6_rotz", link4_exts[1])
 link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for link6_ext in link6_exts]
 
 # add to collision points position too
@@ -80,22 +81,25 @@ for hand_pos in link6_exts_pos:
 for name, node in list(collision_pts_pos.items()):
     leaves.CollisionAvoidanceBox(name + "_right_avoider", node, None,
                                  np.array([fright_pos]).T, np.array([[0.05, 0.05, 0.10]]).T,
-                                 0.005, epsilon=0.0, eta=0, r_w = 0.15, alpha=1e-5)
+                                 0.005, epsilon=0.0, eta=2, r_w = 0.1, alpha=1e-7)
 
     leaves.CollisionAvoidanceBox(name + "_left_avoider", node, None,
                                  np.array([fleft_pos]).T, np.array([[0.05, 0.05, 0.10]]).T,
-                                 0.005, epsilon=0.0, eta=0, r_w = 0.15, alpha=1e-5)
+                                 0.005, epsilon=0.0, eta=2, r_w = 0.1, alpha=1e-7)
 
     leaves.CollisionAvoidanceBox(name + "_bot_avoider", node, None,
                                  np.array([fbot_pos]).T, np.array([[0.1, 0.05, 0.05]]).T,
-                                 0.005, epsilon=0.0, eta=0, r_w = 0.15, alpha=1e-5)
+                                 0.005, epsilon=0.0, eta=2, r_w = 0.1, alpha=1e-7)
 
     leaves.CollisionAvoidanceBox(name + "_top_avoider", node, None,
                                  np.array([ftop_pos]).T, np.array([[0.1, 0.05, 0.05]]).T,
-                                 0.005, epsilon=0.0, eta=0, r_w=0.15, alpha=1e-5)
+                                 0.005, epsilon=0.0, eta=2, r_w=0.1, alpha=1e-7)
 
 # attract palm of hand to target
-atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
+atrc_pos = leaves.GoalAttractorUni("jaco_attractor_pos", link6_exts_pos[1], np.array([target_pos]).T, gain=5)
+# atrc_rotx = leaves.GoalAttractorUni("jaco_attractor_rotx", link6_ext_rotx, np.array([[0.0]]), gain=20, alpha=2)
+# atrc_roty = leaves.GoalAttractorUni("jaco_attractor_roty", link6_ext_roty, np.array([[0.0]]), gain=20, alpha=2)
+# atrc_rotz = leaves.GoalAttractorUni("jaco_attractor_rotz", link6_ext_rotz, np.array([[0.0]]), gain=20, alpha=2)
 
 # include joint limits, biast towards center of each joint
 def get_lims(name):
@@ -130,7 +134,6 @@ while True:
     # print('qpos: ' + str(env.sim.data.qpos[:6]))
     print('xpos: ' + str(env.sim.data.body_xpos[7]))
     print('qpos: ' + str(env.sim.data.qpos))
-    # quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
-    # r = R.from_quat(quat)
-    # print('rot: ' + str(r.as_euler('xyz', degrees=False)))
-    # print('qdd: ' + str(qdd))
+    quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
+    r = R.from_quat(quat)
+    print('rot: ' + str(r.as_euler('xyz', degrees=False)))
