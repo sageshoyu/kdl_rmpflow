@@ -5,6 +5,10 @@ import PyKDL as kdl
 
 
 class KDLRMPNode(RMPNode):
+    """
+    Builds a new RMP node, map is forward kinematics from base_link to end_link.
+    offset is in the local frame of end_link's parent joint.
+    """
     def __init__(self, name, parent, robot, base_link, end_link, offset=np.zeros((3, 1))):
         _, tree = k_parser.treeFromUrdfModel(robot)
         self.chain = tree.getChain(base_link, end_link)
@@ -58,6 +62,13 @@ class KDLRMPNode(RMPNode):
 
 
 class ProjectionNode(RMPNode):
+    """
+    Constructs a new node with map that passes through parameters
+    (in the same order) as specified by param_map.
+    Param_map is the same length of state vector of parent node,
+    with 1's in the indices for parameters to be passed, and 0's in
+    the indices for parameters to be withheld.
+    """
     def __init__(self, name, parent, param_map):
         # construct matrix map, this is for object creation so performance
         # is less of a concern
@@ -76,21 +87,33 @@ class ProjectionNode(RMPNode):
 
 
 class PositionProjection(ProjectionNode):
+    """
+    Convenience method to pass position from KDLRMPNode state.
+    """
     def __init__(self, name, parent):
         super().__init__(name, parent, np.array([1, 1, 1, 0, 0, 0]))
 
 
 class RotZProjection(ProjectionNode):
+    """
+    Convenience method to pass z-axis rotation from KDLRMPNode state.
+    """
     def __init__(self, name, parent):
         super().__init__(name, parent, np.array([0, 0, 0, 0, 0, 1]))
 
 
 class RotYProjection(ProjectionNode):
+    """
+    Convenience method to pass y-axis rotation from KDLRMPNode state.
+    """
     def __init__(self, name, parent):
         super().__init__(name, parent, np.array([0, 0, 0, 0, 1, 0]))
 
 
 class RotXProjection(ProjectionNode):
+    """
+    Convenience method to pass x-axis rotation from KDLRMPNode state.
+    """
     def __init__(self, name, parent):
         super().__init__(name, parent, np.array([0, 0, 0, 1, 0, 0]))
 
@@ -120,6 +143,15 @@ def jac_to_np(jac):
 
 
 def rmp_from_urdf(robot):
+    """
+    Constructs rmpflow tree from robot urdf, exposing all actuatable
+    joints.
+
+    Returns: root, leaf_dict
+    root - root of rmpflow tree
+    leaf_dict - dictionary containing all RMPNodes of actuatable
+    joints, indexed by joint name as specified in URDF
+    """
     # find all actuated joint names
     flatten = lambda l: [item for sublist in l for item in sublist]
     jnts = flatten(list(map(lambda t: t.joints, robot.transmissions)))
@@ -159,9 +191,12 @@ def rmp_from_urdf(robot):
 
 
 def kdl_node_array(name, parent, robot, base_link, end_link, spacing, num, link_dir, skip=0):
+    """
+    Constructs a line of regulary-spaced KDLRMPNodes offset from joint specified by end_link,
+    in the unit-direction of link_dir (in local frame of parent joint of end_link).
+    """
     unit_dir = link_dir / np.linalg.norm(link_dir)
     nodes = []
     for i in range(skip, num):
         nodes.append(KDLRMPNode(name + str(i), parent, robot, base_link, end_link, offset=unit_dir * spacing * i))
-
     return nodes
