@@ -1,5 +1,6 @@
 from kdl_rmpflow.rmp.rmp import RMPRoot, RMPNode
 from kdl_parser_py import urdf as k_parser
+from scipy.spatial.transform import Rotation as R
 import numpy as np
 import PyKDL as kdl
 
@@ -190,7 +191,7 @@ def rmp_from_urdf(robot):
     return root, leaf_dict
 
 
-def kdl_node_array(name, parent, robot, base_link, end_link, h, num, link_dir, skip_h=0):
+def kdl_node_array(name, parent, robot, base_link, end_link, h, num, link_dir, skip_h=0, offset=np.zeros((3,1))):
     """
     Constructs a line of regulary-spaced KDLRMPNodes offset from joint specified by end_link,
     in the unit-direction of link_dir (in local frame of parent joint of end_link).
@@ -200,5 +201,87 @@ def kdl_node_array(name, parent, robot, base_link, end_link, h, num, link_dir, s
     spacing = (h - skip_h) / (num - 1)
     nodes = []
     for i in range(num):
-        nodes.append(KDLRMPNode(name + str(i), parent, robot, base_link, end_link, offset=unit_dir * spacing * i))
+        nodes.append(KDLRMPNode(name + str(i),
+                                parent,
+                                robot,
+                                base_link,
+                                end_link,
+                                offset=unit_dir * spacing * i + offset))
     return nodes
+
+
+def kdl_cylinder(name,
+                 parent,
+                 robot,
+                 base_link,
+                 end_link,
+                 r,
+                 h,
+                 pts_per_round,
+                 pts_in_h,
+                 link_dir,
+                 offset=np.zeros((3,1))):
+    """
+    Constructs control points in cylindrical formation around arm link
+    (typical use case: approximate geometry of link for collision avoidance)
+
+    Keyword Args:
+        name -- name prefix for all constructed nodes
+        parent -- parent RMPNode (typically root or ProjectionNode from root)
+        robot -- robot urdf as constructed by urdf_parser_py
+        base_link -- starting link name in URDF
+        end_link -- ending link name in URDF
+        r -- radius of cylinder
+        h -- height/length of cylinder
+        pts_per_round -- number of control points in circular cross section of cylinder
+        pts_in_h -- number of control points along cylinder length
+        link_dir -- unit direction to specify direction of cylinder length
+                    (in local frame of parent joint of base_link)
+        offset -- length of cylinder to skip (starting from joint) to place first round of control points
+
+    Node: control points are placed AFTER offset is taken into account. So the distance between each round
+    of control points is: (h - offset) / pts_in_h
+    """
+
+    unit_dir = link_dir / np.linalg.norm(link_dir)
+
+    # np.cross only works with row vecs, so take transpose and go back
+    # to find starting vect, take cross with x y and z axis (in that order
+    # in case the first one fails)
+    rnd_start = np.cross(unit_dir.T, np.array([1,0,0])).T
+
+    if not np.any(rnd_start):
+        rnd_start = np.cross(unit_dir.T, np.array([0,1,0])).T
+
+        if not np.any(rnd_start):
+            rnd_start = np.cross(unit_dir.T, np.array([0,0,1])).T
+
+    nodes = []
+
+    # position vector from jnt to round pts will be normal to link_dir
+    rnd_spacing = np.pi / pts_per_round
+
+    for i in range(pts_per_round):
+        angle_offset = i * rnd_spacing
+
+        # rotate rnd_start about link_dir axis by angle_offset, multiply by radius
+        rnd_next = r * R.from_rotvec(angle_offset * unit_dir.T).apply(rnd_start.T).T
+
+        # create node line, offset by rotated rnd_next vector (i.e. revolving line offset by radius)
+        nodes.append(kdl_node_array("round_arr_" + i + "_" + name,
+                                    parent,
+                                    robot,
+                                    base_link,
+                                    end_link,
+                                    h,
+                                    pts_in_h,
+                                    unit_dir,
+                                    offset=offset + rnd_next))
+
+    return nodes
+
+
+
+
+
+
