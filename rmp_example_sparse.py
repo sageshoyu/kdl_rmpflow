@@ -8,7 +8,6 @@ from urdf_parser_py.urdf import URDF as u_parser
 from kdl_rmpflow.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, kdl_node_array, RotZProjection, RotYProjection, RotXProjection
 import kdl_rmpflow.rmp.rmp_leaf as leaves
 
-# %%
 env = MjJacoEnv(vis=True)
 
 # set the jaco arm to a stable(ish) position
@@ -32,7 +31,7 @@ link6_pos = PositionProjection("link6_pos", links['j2s6s300_link_6'])
 
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
 link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
-                            spacing=0.05, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
+                            h=0.15, skip_h=0.05, num=2, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
 link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for link6_ext in link6_exts]
 link6_ext_rotz = RotZProjection("link6_ext_rotz", link6_exts[1])
 link6_ext_roty = RotYProjection("link6_ext_roty", link6_exts[1])

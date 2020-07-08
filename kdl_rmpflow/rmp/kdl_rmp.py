@@ -190,13 +190,15 @@ def rmp_from_urdf(robot):
     return root, leaf_dict
 
 
-def kdl_node_array(name, parent, robot, base_link, end_link, spacing, num, link_dir, skip=0):
+def kdl_node_array(name, parent, robot, base_link, end_link, h, num, link_dir, skip_h=0):
     """
     Constructs a line of regulary-spaced KDLRMPNodes offset from joint specified by end_link,
     in the unit-direction of link_dir (in local frame of parent joint of end_link).
     """
+    assert num >= 2
     unit_dir = link_dir / np.linalg.norm(link_dir)
+    spacing = (h - skip_h) / (num - 1)
     nodes = []
-    for i in range(skip, num):
+    for i in range(num):
         nodes.append(KDLRMPNode(name + str(i), parent, robot, base_link, end_link, offset=unit_dir * spacing * i))
     return nodes

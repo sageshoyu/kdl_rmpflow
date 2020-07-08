@@ -51,7 +51,7 @@ for name, node in links.items():
 # add line of collision points along forearm
 link4_proj = ProjectionNode("link4_proj", root, np.array([1] * 4 + [0] * 8))
 link4_exts = kdl_node_array("link4_ext", link4_proj, robot, 'world', 'j2s6s300_link_4',
-                           spacing=0.05, skip=1, num=5, link_dir=np.array([0,0,1]).reshape(-1, 1))
+                           h=0.25, skip_h=0.05, num=4, link_dir=np.array([0,0,1]).reshape(-1, 1))
 link4_exts_pos = [PositionProjection(link4_ext.name + "_pos", link4_ext) for link4_ext in link4_exts]
 for forearm_pos in link4_exts_pos:
     collision_pts_pos[forearm_pos.name] = forearm_pos
@@ -66,7 +66,7 @@ collision_pts_pos[link5_ext_pos.name] = link5_ext_pos
 # add line of position nodes through hand to dictionary
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
 link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
-                            spacing=0.05, skip=1, num=3, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
+                            h=0.15, skip_h=0.05, num=2, link_dir=np.array([0, 0, -1]).reshape(-1, 1))
 link6_ext_rotx = RotXProjection("link6_rotx", link4_exts[1])
 link6_ext_roty = RotYProjection("link6_roty", link4_exts[1])
 link6_ext_rotz = RotZProjection("link6_rotz", link4_exts[1])
