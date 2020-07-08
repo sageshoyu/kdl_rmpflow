@@ -1,5 +1,5 @@
-from motor_skills.rmp.rmp import RMPRoot
-from motor_skills.rmp.rmp_leaf import JointLimiter
+from kdl_rmpflow.rmp.rmp import RMPRoot
+from kdl_rmpflow.rmp.rmp_leaf import JointLimiter
 import numpy as np
 
 bounds = np.array([[-1, 1], [-1, 1], [-1, 1], [-1, 1]])

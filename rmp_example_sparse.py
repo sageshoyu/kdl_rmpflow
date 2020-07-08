@@ -1,12 +1,12 @@
 import copy
 from scipy.spatial.transform import Rotation as R
 import numpy as np
-import motor_skills.core.mj_control as mjc
-from motor_skills.envs.mj_jaco import MjJacoEnv
-from motor_skills.rmp.kdl_rmp import ProjectionNode
+import kdl_rmpflow.core.mj_control as mjc
+from kdl_rmpflow.envs.mj_jaco import MjJacoEnv
+from kdl_rmpflow.rmp.kdl_rmp import ProjectionNode
 from urdf_parser_py.urdf import URDF as u_parser
-from motor_skills.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, kdl_node_array, RotZProjection, RotYProjection, RotXProjection
-import motor_skills.rmp.rmp_leaf as leaves
+from kdl_rmpflow.rmp.kdl_rmp import rmp_from_urdf, PositionProjection, kdl_node_array, RotZProjection, RotYProjection, RotXProjection
+import kdl_rmpflow.rmp.rmp_leaf as leaves
 
 # %%
 env = MjJacoEnv(vis=True)

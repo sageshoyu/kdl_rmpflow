@@ -1,4 +1,4 @@
-from motor_skills.rmp.rmp import RMPRoot, RMPNode
+from kdl_rmpflow.rmp.rmp import RMPRoot, RMPNode
 from kdl_parser_py import urdf as k_parser
 import numpy as np
 import PyKDL as kdl
