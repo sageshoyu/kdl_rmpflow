@@ -268,7 +268,7 @@ def kdl_cylinder(name,
         rnd_next = r * R.from_rotvec(angle_offset * unit_dir.T).apply(rnd_start.T).T
 
         # create node line, offset by rotated rnd_next vector (i.e. revolving line offset by radius)
-        nodes.append(kdl_node_array("round_arr_" + i + "_" + name,
+        nodes.extend(kdl_node_array("round_arr_" + str(i) + "_" + name,
                                     parent,
                                     robot,
                                     base_link,
