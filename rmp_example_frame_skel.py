@@ -56,13 +56,6 @@ link4_exts_pos = [PositionProjection(link4_ext.name + "_pos", link4_ext) for lin
 for forearm_pos in link4_exts_pos:
     collision_pts_pos[forearm_pos.name] = forearm_pos
 
-# add additional collision point at wrist
-link5_proj = ProjectionNode("link5_proj", root, np.array([1] * 5 + [0] * 7))
-link5_ext = KDLRMPNode("link5_ext", link5_proj, robot, 'world', 'j2s6s300_link_5',
-                        offset=np.array([0, 0.5, 0]).reshape(-1, 1))
-link5_ext_pos = PositionProjection("link5_ext_pos", link5_ext)
-collision_pts_pos[link5_ext_pos.name] = link5_ext_pos
-
 # add line of position nodes through hand to dictionary
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
 link6_exts = kdl_node_array("link6_ext", link6_proj, robot, 'world', 'j2s6s300_link_6',
@@ -96,7 +89,7 @@ for name, node in list(collision_pts_pos.items()):
                                  0.005, epsilon=0.0, eta=2, r_w=0.1, alpha=1e-7)
 
 # attract palm of hand to target
-atrc_pos = leaves.GoalAttractorUni("jaco_attractor_pos", link6_exts_pos[1], np.array([target_pos]).T, gain=5)
+atrc_pos = leaves.GoalAttractorUni("jaco_attractor_pos", link6_exts_pos[1], np.array([target_pos]).T, gain=20)
 # atrc_rotx = leaves.GoalAttractorUni("jaco_attractor_rotx", link6_ext_rotx, np.array([[0.0]]), gain=20, alpha=2)
 # atrc_roty = leaves.GoalAttractorUni("jaco_attractor_roty", link6_ext_roty, np.array([[0.0]]), gain=20, alpha=2)
 # atrc_rotz = leaves.GoalAttractorUni("jaco_attractor_rotz", link6_ext_rotz, np.array([[0.0]]), gain=20, alpha=2)
@@ -109,7 +102,7 @@ def get_lims(name):
 
 lims = np.array(list(map(get_lims, jnts)))
 cent = np.mean(lims, axis=1).reshape(-1, 1)
-jnt_lim = leaves.JointLimiter("jaco_jnt_lims", root, lims, cent, lam=0.01)
+# jnt_lim = leaves.JointLimiter("jaco_jnt_lims", root, lims, cent, lam=0.01)
 
 qdd_cap = 1000
 while True:
@@ -137,3 +130,7 @@ while True:
     quat = mjc.quat_to_scipy(env.sim.data.body_xquat[6])
     r = R.from_quat(quat)
     print('rot: ' + str(r.as_euler('xyz', degrees=False)))
+
+    # update site position marking repulsion points on cylinder
+    for i in range(len(list(collision_pts_pos.values()))):
+        env.model.site_pos[i] = list(collision_pts_pos.values())[i].x.flatten()

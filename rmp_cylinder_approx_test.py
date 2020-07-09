@@ -51,7 +51,7 @@ atrc = leaves.GoalAttractorUni("jaco_attractor", link6_exts_pos[1], np.array([ta
 for i in range(len(link6_rnds_pos)):
     hand_rnd_pos = link6_rnds_pos[i]
     leaves.CollisionAvoidance(hand_rnd_pos.name + "_hand_avoider" + str(i), hand_rnd_pos, None,
-                              np.array([obstacle_pos]).T, R=0.05, r_w=0.07, eta=2, epsilon=0.0, alpha=1e-30)
+                              np.array([obstacle_pos]).T, R=0.05, r_w=0.09, eta=2, epsilon=0.0, alpha=1e-100)
 
 jnts = ['j2s6s300_joint_1',
         'j2s6s300_joint_2',

@@ -26,7 +26,7 @@ class KDLRMPNode(RMPNode):
             jnt_q = np_to_jnt_arr(q)
             e = self.pos_solver.JntToCart(jnt_q, p_frame)
             if e != 0:
-                print("KDL SOLVER ERROR: " + str(e))
+                print("KDL SOLVER ERROR in " + name + ": " + str(e))
             p = p_frame * base
             Rz, Ry, Rx = p_frame.M.GetEulerZYX()
             return np.array([[p.x(), p.y(), p.z(), Rx, Ry, Rz]]).T
@@ -162,7 +162,7 @@ def rmp_from_urdf(robot):
     # ASSUMPTION: joints are listed the same way as links in both mujoco xml and urdf
     link_names = [robot.joint_map[jnt_name].child for jnt_name in jnt_names]
 
-    # construct RMP bush
+    # construct RMP bush root
     root = RMPRoot('root')
 
     # using link names, construct RMP bush
