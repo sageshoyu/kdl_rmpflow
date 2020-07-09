@@ -8,4 +8,31 @@
     <body name="box" pos="0.42 0.18 0.5" euler="0.7854 0.7854 0.7854">
         <geom size="0.07 0.07 0.01" type="box" rgba="1 0 0 1" contype="7" conaffinity="8"/>
     </body>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
+    <site pos="0.5 0.5 0" type="sphere" rgba="0 0 1 1" size="0.005 0.005 0.005"/>
 </mujoco>

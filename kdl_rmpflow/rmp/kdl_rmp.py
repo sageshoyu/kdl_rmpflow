@@ -259,7 +259,7 @@ def kdl_cylinder(name,
     nodes = []
 
     # position vector from jnt to round pts will be normal to link_dir
-    rnd_spacing = np.pi / pts_per_round
+    rnd_spacing = 2 * np.pi / pts_per_round
 
     for i in range(pts_per_round):
         angle_offset = i * rnd_spacing
