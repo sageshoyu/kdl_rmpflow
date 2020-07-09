@@ -11,7 +11,7 @@ import kdl_rmpflow.rmp.rmp_leaf as leaves
 env = MjJacoEnv(vis=True)
 
 # set the jaco arm to a stable(ish) position
-env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0, 0, 0, 0, 0]
+env.sim.data.qpos[:12] = [0, np.pi, np.pi, 0, np.pi, 0, 0, 0.0, 0, 0.0, 0, 0.0]
 # env.sim.data.qpos[:6] = [3.5, 3, 1, 1, 1, 1]
 
 env.sim.data.qvel[:6] = [0, 0, 0, 0, 0, 0]
@@ -56,7 +56,7 @@ collision_pts_pos.update(dict(zip(
 
 link5_proj = ProjectionNode("link5_proj", root, np.array([1] * 5 + [0] * 7))
 link5_cyls = kdl_cylinder("link5_rnd", link5_proj, robot, 'world', 'j2s6s300_link_5',
-                          r=0.04, h=0.10, pts_per_round=5, pts_in_h=4, link_dir=np.array([0,1,0]).reshape(-1,1))
+                          r=0.04, h=0.10, pts_per_round=5, pts_in_h=3, link_dir=np.array([0,1,0]).reshape(-1,1))
 link5_cyls_pos = [PositionProjection(link5_cyl.name + "_pos", link5_cyl) for link5_cyl in link5_cyls]
 collision_pts_pos.update(dict(zip(
     map(lambda node: node.name, link5_cyls_pos),
@@ -116,7 +116,7 @@ collision_pts_pos.update(dict(zip(
     fing2_tip_cyls_pos)))
 
 
-fing3_base_proj = ProjectionNode("fing3_base_proj", root, np.array([1] * 6 + [0] * 4 + [1] + [0]))
+fing3_base_proj = ProjectionNode("fing3_base_proj", root, np.array([1] * 6 + [0, 0, 0, 0, 1, 0]))
 fing3_base_cyls = kdl_cylinder("fing3_base_cyl", fing3_base_proj, robot, 'world', 'j2s6s300_link_finger_3',
                                r=0.01, h=0.025, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
 fing3_base_cyls_pos = [PositionProjection(fing3_base_cyl.name + "_pos", fing3_base_cyl) for fing3_base_cyl in fing3_base_cyls]
@@ -124,8 +124,8 @@ collision_pts_pos.update(dict(zip(
     map(lambda node: node.name, fing3_base_cyls_pos),
     fing3_base_cyls_pos)))
 
-fing3_tip_proj = ProjectionNode("fing3_tip_proj", root, np.array([1] * 6 + [0] * 4 + [1] * 2))
-fing3_tip_cyls = kdl_cylinder("fing3_tip_cyl", fing2_tip_proj, robot, 'world', 'j2s6s300_link_finger_tip_3',
+fing3_tip_proj = ProjectionNode("fing3_tip_proj", root, np.array([1] * 6 + [0, 0, 0, 0, 1, 1]))
+fing3_tip_cyls = kdl_cylinder("fing3_tip_cyl", fing3_tip_proj, robot, 'world', 'j2s6s300_link_finger_tip_3',
                               r=0.01, h=0.04, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
 fing3_tip_cyls_pos = [PositionProjection(fing3_tip_cyl.name + "_pos", fing3_tip_cyl) for fing3_tip_cyl in fing3_tip_cyls]
 collision_pts_pos.update(dict(zip(
@@ -166,7 +166,7 @@ def get_lims(name):
 
 lims = np.array(list(map(get_lims, jnts)))
 cent = np.mean(lims, axis=1).reshape(-1, 1)
-jnt_lim = leaves.JointLimiter("jaco_jnt_lims", root, lims, cent, lam=0.01)
+# jnt_lim = leaves.JointLimiter("jaco_jnt_lims", root, lims, cent, lam=0.01)
 
 qdd_cap = 1000
 while True:
