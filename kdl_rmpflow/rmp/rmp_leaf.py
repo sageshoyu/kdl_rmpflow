@@ -112,9 +112,9 @@ class CollisionAvoidance(RMPLeaf):
                  + 1 / norm(y - c) * np.eye(N)))
 
         def RMP_func(x, x_dot):
-            w = max(r_w - x, 0) / (x - R) if x >= 0 else 1e10
+            w = max(r_w - x, 0) / (x - R) if (x - R) >= 0 else 1e10
             grad_w = (((r_w - x) > 0) * -1 * (x - R) - max(r_w - x, 0.0)) / (x - R) ** 2 \
-                if x >= 0 else 0
+                if (x - R) >= 0 else 0
 
             # epsilon is the constant value when moving away from the obstacle
             u = epsilon + (1.0 - np.exp(-x_dot ** 2 / 2.0 / sigma ** 2) if x_dot < 0 else 0.0)
@@ -181,8 +181,9 @@ class CollisionAvoidanceBox(RMPLeaf):
                 p = np.dot(rot_inv, y - c)
                 q = np.abs(p) - r
                 sdf = norm(np.maximum(q, 0.0))
-                if sdf == 0:
-                    print("WARNING: BOX SDF IS ZERO")
+
+                if sdf <= 0.0:
+                    print(self.name + " SDF ZERO")
 
                 return np.dot(np.repeat(1 / sdf, 3).reshape(1, 3),
                        np.dot(np.diag(np.maximum(q, 0.0).flatten()),

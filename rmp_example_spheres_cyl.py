@@ -42,25 +42,31 @@ robot = u_parser.from_xml_file('assets/kinova_j2s6s300/ros-j2s6s300.xml')
 # construct basic kinematic RMP nodes
 root, links = rmp_from_urdf(robot)
 
-# attach position nodes
-collision_pts_pos = {}
+# list containing all collision control points
+collision_pts = []
+
+# add cyl of collision points between elbow and wrist
+link2_proj = ProjectionNode("link2_proj", root, np.array([1] * 2 + [0] * 10))
+link2_cyls = kdl_cylinder("link2_rnd", link2_proj, robot, 'world', 'j2s6s300_link_2',
+                          r=0.05, h=0.38, pts_per_round=3, pts_in_h=6, link_dir=np.array([0,-1,0]).reshape(-1, 1))
+collision_pts.extend(link2_cyls)
 
 # add cyl of collision points along forearm
+link3_proj = ProjectionNode("link3_proj", root, np.array([1] * 3 + [0] * 9))
+link3_cyls = kdl_cylinder("link3_rnd", link3_proj, robot, 'world', 'j2s6s300_link_3',
+                          r=0.04, h=0.18, pts_per_round=3, pts_in_h=4, link_dir=np.array([0,1,0]).reshape(-1, 1))
+collision_pts.extend(link3_cyls)
+
+# add cyl of collision points along wrist
 link4_proj = ProjectionNode("link4_proj", root, np.array([1] * 4 + [0] * 8))
 link4_cyls = kdl_cylinder("link4_rnd", link4_proj, robot, 'world', 'j2s6s300_link_4',
                           r=0.04, h=0.08, pts_per_round=3, pts_in_h=3, link_dir=np.array([0,0,-1]).reshape(-1,1))
-link4_cyls_pos = [PositionProjection(link4_cyl.name + "_pos", link4_cyl) for link4_cyl in link4_cyls]
-collision_pts_pos.update(dict(zip(
-        map(lambda node: node.name, link4_cyls_pos),
-        link4_cyls_pos)))
+collision_pts.extend(link4_cyls)
 
 link5_proj = ProjectionNode("link5_proj", root, np.array([1] * 5 + [0] * 7))
 link5_cyls = kdl_cylinder("link5_rnd", link5_proj, robot, 'world', 'j2s6s300_link_5',
-                          r=0.04, h=0.10, pts_per_round=5, pts_in_h=3, link_dir=np.array([0,1,0]).reshape(-1,1))
-link5_cyls_pos = [PositionProjection(link5_cyl.name + "_pos", link5_cyl) for link5_cyl in link5_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, link5_cyls_pos),
-    link5_cyls_pos)))
+                          r=0.04, h=0.10, pts_per_round=4, pts_in_h=3, link_dir=np.array([0,1,0]).reshape(-1,1))
+collision_pts.extend(link5_cyls)
 
 # add line of control points for attraction
 link6_proj = ProjectionNode("link6_proj", root, np.array([1] * 6 + [0] * 6))
@@ -73,87 +79,63 @@ link6_exts_pos = [PositionProjection(link6_ext.name + "_pos", link6_ext) for lin
 
 # add collision avoidance control points for hand base
 link6_cyls = kdl_cylinder("link6_cyl", link6_proj, robot, 'world', 'j2s6s300_link_6',
-                          r=0.05, h=0.10, pts_in_h=5, pts_per_round=6, link_dir=np.array([0,0,-1]).reshape(-1, 1))
-link6_cyls_pos = [PositionProjection(link6_cyl.name + "_pos", link6_cyl) for link6_cyl in link6_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, link6_cyls_pos),
-    link6_cyls_pos)))
-
+                          r=0.05, h=0.10, pts_in_h=4, pts_per_round=4, link_dir=np.array([0,0,-1]).reshape(-1, 1))
+collision_pts.extend(link6_cyls)
 
 # add collision avoidance control points to fingers
 fing1_base_proj = ProjectionNode("fing1_base_proj", root, np.array([1] * 7 + [0] * 5))
 fing1_base_cyls = kdl_cylinder("fing1_base_cyl", fing1_base_proj, robot, 'world', 'j2s6s300_link_finger_1',
-                               r=0.01, h=0.025, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
-fing1_base_cyls_pos = [PositionProjection(fing1_base_cyl.name + "_pos", fing1_base_cyl) for fing1_base_cyl in fing1_base_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, fing1_base_cyls_pos),
-    fing1_base_cyls_pos)))
+                               r=0.01, h=0.025, pts_in_h=2, pts_per_round=2, link_dir=np.array([1,0,0]).reshape(-1,1))
+collision_pts.extend(fing1_base_cyls)
 
 fing1_tip_proj = ProjectionNode("fing1_tip_proj", root, np.array([1] * 8 + [0] * 4))
 fing1_tip_cyls = kdl_cylinder("fing1_tip_cyl", fing1_tip_proj, robot, 'world', 'j2s6s300_link_finger_tip_1',
-                               r=0.01, h=0.04, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
-fing1_tip_cyls_pos = [PositionProjection(fing1_tip_cyl.name + "_pos", fing1_tip_cyl) for fing1_tip_cyl in fing1_tip_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, fing1_tip_cyls_pos),
-    fing1_tip_cyls_pos)))
-
-
+                               r=0.01, h=0.04, pts_in_h=2, pts_per_round=2, link_dir=np.array([1,0,0]).reshape(-1,1))
+collision_pts.extend(fing1_tip_cyls)
 
 fing2_base_proj = ProjectionNode("fing2_base_proj", root, np.array([1] * 6 + [0] * 2 + [1] + [0] * 3))
 fing2_base_cyls = kdl_cylinder("fing2_base_cyl", fing2_base_proj, robot, 'world', 'j2s6s300_link_finger_2',
-                               r=0.01, h=0.025, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
-fing2_base_cyls_pos = [PositionProjection(fing2_base_cyl.name + "_pos", fing2_base_cyl) for fing2_base_cyl in fing2_base_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, fing2_base_cyls_pos),
-    fing2_base_cyls_pos)))
+                               r=0.01, h=0.025, pts_in_h=2, pts_per_round=2, link_dir=np.array([1,0,0]).reshape(-1,1))
+collision_pts.extend(fing2_base_cyls)
 
 fing2_tip_proj = ProjectionNode("fing2_tip_proj", root, np.array([1] * 6 + [0] * 2 + [1] * 2 + [0] * 2))
 fing2_tip_cyls = kdl_cylinder("fing2_tip_cyl", fing2_tip_proj, robot, 'world', 'j2s6s300_link_finger_tip_2',
-                              r=0.01, h=0.04, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
-fing2_tip_cyls_pos = [PositionProjection(fing2_tip_cyl.name + "_pos", fing2_tip_cyl) for fing2_tip_cyl in fing2_tip_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, fing2_tip_cyls_pos),
-    fing2_tip_cyls_pos)))
-
+                              r=0.01, h=0.04, pts_in_h=2, pts_per_round=2, link_dir=np.array([1,0,0]).reshape(-1,1))
+collision_pts.extend(fing2_tip_cyls)
 
 fing3_base_proj = ProjectionNode("fing3_base_proj", root, np.array([1] * 6 + [0, 0, 0, 0, 1, 0]))
 fing3_base_cyls = kdl_cylinder("fing3_base_cyl", fing3_base_proj, robot, 'world', 'j2s6s300_link_finger_3',
-                               r=0.01, h=0.025, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
-fing3_base_cyls_pos = [PositionProjection(fing3_base_cyl.name + "_pos", fing3_base_cyl) for fing3_base_cyl in fing3_base_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, fing3_base_cyls_pos),
-    fing3_base_cyls_pos)))
+                               r=0.01, h=0.025, pts_in_h=2, pts_per_round=2, link_dir=np.array([1,0,0]).reshape(-1,1))
+collision_pts.extend(fing3_base_cyls)
 
 fing3_tip_proj = ProjectionNode("fing3_tip_proj", root, np.array([1] * 6 + [0, 0, 0, 0, 1, 1]))
 fing3_tip_cyls = kdl_cylinder("fing3_tip_cyl", fing3_tip_proj, robot, 'world', 'j2s6s300_link_finger_tip_3',
-                              r=0.01, h=0.04, pts_in_h=2, pts_per_round=3, link_dir=np.array([1,0,0]).reshape(-1,1))
-fing3_tip_cyls_pos = [PositionProjection(fing3_tip_cyl.name + "_pos", fing3_tip_cyl) for fing3_tip_cyl in fing3_tip_cyls]
-collision_pts_pos.update(dict(zip(
-    map(lambda node: node.name, fing3_tip_cyls_pos),
-    fing3_tip_cyls_pos)))
+                              r=0.01, h=0.04, pts_in_h=2, pts_per_round=2, link_dir=np.array([1,0,0]).reshape(-1,1))
+collision_pts.extend(fing2_tip_cyls)
 
-
+# obtain positions from control points
+collision_pts_pos = [PositionProjection(node.name + "_pos", node) for node in collision_pts]
 
 # attach collision avoidance nodes (avoid the frame)
-for name, node in list(collision_pts_pos.items()):
-    leaves.CollisionAvoidanceBox(name + "_right_avoider", node, None,
-                                 np.array([fright_pos]).T, np.array([[0.04, 0.04, 0.09]]).T,
-                                 0.015, epsilon=0.05, eta=2, r_w = 0.2, alpha=1e-10)
+for node in collision_pts_pos:
+    leaves.CollisionAvoidance(node.name + "_right_avoider", node, None,
+                                 np.array([fright_pos]).T,
+                                 R=0.05, epsilon=0.00, eta=0, r_w = 0.1, alpha=1e-5)
 
-    leaves.CollisionAvoidanceBox(name + "_left_avoider", node, None,
-                                 np.array([fleft_pos]).T, np.array([[0.04, 0.04, 0.09]]).T,
-                                 0.015, epsilon=0.05, eta=2, r_w = 0.2, alpha=1e-10)
+    leaves.CollisionAvoidance(node.name + "_left_avoider", node, None,
+                                 np.array([fleft_pos]).T,
+                                 R=0.05, epsilon=0.00, eta=0, r_w = 0.1, alpha=1e-5)
 
-    leaves.CollisionAvoidanceBox(name + "_bot_avoider", node, None,
-                                 np.array([fbot_pos]).T, np.array([[0.09, 0.04, 0.04]]).T,
-                                 0.015, epsilon=0.05, eta=2, r_w = 0.2, alpha=1e-10)
+    leaves.CollisionAvoidance(node.name + "_bot_avoider", node, None,
+                                 np.array([fbot_pos]).T,
+                                 R=0.05, epsilon=0.00, eta=0, r_w = 0.1, alpha=1e-5)
 
-    leaves.CollisionAvoidanceBox(name + "_top_avoider", node, None,
-                                 np.array([ftop_pos]).T, np.array([[0.09, 0.04, 0.04]]).T,
-                                 0.015, epsilon=0.05, eta=2, r_w=0.2, alpha=1e-10)
+    leaves.CollisionAvoidance(node.name + "_top_avoider", node, None,
+                                 np.array([ftop_pos]).T,
+                                 R=0.05, epsilon=0.00, eta=0, r_w=0.1, alpha=1e-5)
 
 # attract palm of hand to target
-atrc_pos = leaves.GoalAttractorUni("jaco_attractor_pos", link6_exts_pos[1], np.array([target_pos]).T, gain=30)
+atrc_pos = leaves.GoalAttractorUni("jaco_attractor_pos", link6_exts_pos[1], np.array([target_pos]).T, gain=50)
 # atrc_rotx = leaves.GoalAttractorUni("jaco_attractor_rotx", link6_ext_rotx, np.array([[0.0]]), gain=20, alpha=2)
 # atrc_roty = leaves.GoalAttractorUni("jaco_attractor_roty", link6_ext_roty, np.array([[0.0]]), gain=20, alpha=2)
 # atrc_rotz = leaves.GoalAttractorUni("jaco_attractor_rotz", link6_ext_rotz, np.array([[0.0]]), gain=20, alpha=2)
@@ -195,5 +177,5 @@ while True:
     print('rot: ' + str(r.as_euler('xyz', degrees=False)))
 
     # update site position marking repulsion points
-    for i in range(len(list(collision_pts_pos.values()))):
-        env.model.site_pos[i] = list(collision_pts_pos.values())[i].x.flatten()
+    for i in range(len(collision_pts_pos)):
+        env.model.site_pos[i] = collision_pts_pos[i].x.flatten()
