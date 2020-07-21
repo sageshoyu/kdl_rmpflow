@@ -38,7 +38,7 @@ jnts = ['j2s6s300_joint_1',
 
 # load URDF
 robot = u_parser.from_xml_file('assets/kinova_j2s6s300/ros-j2s6s300.xml')
-
+#%%
 # construct basic kinematic RMP nodes
 root, links = rmp_from_urdf(robot)
 

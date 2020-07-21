@@ -150,12 +150,11 @@ def rmp_from_urdf(robot):
 
     Returns: root, leaf_dict
     root - root of rmpflow tree
-    leaf_dict - dictionary containing all RMPNodes of actuatable
+    leaf_dict - dictionary containing all RMPNodes of actuatable (revolute or continuous)
     joints, indexed by joint name as specified in URDF
     """
     # find all actuated joint names
-    flatten = lambda l: [item for sublist in l for item in sublist]
-    jnts = flatten(list(map(lambda t: t.joints, robot.transmissions)))
+    jnts = list(filter(lambda j: j.type == 'revolute' or j.type == 'continuous', robot.joints))
     jnt_names = list(map(lambda j: j.name, jnts))
 
     # find all actuated link names
