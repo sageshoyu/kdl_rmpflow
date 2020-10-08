@@ -9,9 +9,9 @@ implementation of Riemmanian Motion Policies flow using Orocos KDL for forward k
     Note: remove lines 35-38, 40 in [kinfam.sip](https://github.com/orocos/orocos_kinematics_dynamics/blob/master/python_orocos_kdl/PyKDL/sip/kinfam.sip) and then build as normal to change
     Python3 bindings API back to Python2 - kdl_parser_py will break otherwise
     
-    Build orocos_kdl first, then python_orocos_kdl after.
-    Note: ensure that you set the python binding flags to SIP, and then the other
-    Python flags accurately reflect your current system configuration.
+    Build orocos_kdl first ([instructions](https://www.orocos.org/kdl/installation-manual)), then python_orocos_kdl after.
+    Note: Use Eigen 3, NOT Eigen 2 for orocos_kdl. When installing python_orocos_kdl, ensure that you set the python binding flags to SIP and that the other
+    Python flags accurately reflect your current system configuration. 
 4. build [kdl_parser_py](https://github.com/ros/kdl_parser) (and all of its dependencies: [catkin](http://wiki.ros.org/catkin?distro=noetic), [urdfdom_py](http://wiki.ros.org/urdfdom_py))
 
 5. python setup.py install 
