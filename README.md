@@ -1,4 +1,4 @@
-# kdl rmp
+# kdl_rmpflow
 implementation of [RMPFlow](https://arxiv.org/abs/1811.07049) using Orocos KDL for forward kinematics (based on Georgia tech here https://github.com/gtrll/multi-robot-rmpflow)
 
 # Standalone Installation (no ROS)
