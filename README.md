@@ -1,7 +1,7 @@
 # kdl rmp
 implementation of Riemmanian Motion Policies flow using Orocos KDL for forward kinematics (based on Georgia tech here https://github.com/gtrll/multi-robot-rmpflow)
 
-# standalone installation (no ROS)
+# Standalone Installation (no ROS)
 1. install mujoco and mujoco_py using these [instructions](https://github.com/openai/mujoco-py). 
 2. install SIP 4 - [instructions](https://docs.huihoo.com/pyqt/sip4/installation.html) (DO NOT use pip)
 3. build orocos kdl from source - [repo](https://github.com/orocos/orocos_kinematics_dynamics/commits/master)
@@ -14,8 +14,13 @@ implementation of Riemmanian Motion Policies flow using Orocos KDL for forward k
     Python flags accurately reflect your current system configuration. 
 4. build [kdl_parser_py](https://github.com/ros/kdl_parser) (and all of its dependencies: [catkin](http://wiki.ros.org/catkin?distro=noetic), [urdfdom_py](http://wiki.ros.org/urdfdom_py))
 
-5. python setup.py install 
+Note: yes, there is a setup.py, but it currently is not updated because dependencies are in flux.
 
+## Other Dependencies:
+1) Numpy
+2) Scipy
+3) [QuatDMP](https://github.com/sageshoyu/QuatDMP)
+4) Open3D
 
 
 # usage
