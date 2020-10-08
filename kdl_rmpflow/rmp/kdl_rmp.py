@@ -1,8 +1,11 @@
 from kdl_rmpflow.rmp.rmp import RMPRoot, RMPNode
 from kdl_parser_py import urdf as k_parser
+from urdf_parser_py.urdf import URDF as u_parser
+import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import PyKDL as kdl
+import os
 
 
 class KDLRMPNode(RMPNode):
@@ -10,6 +13,7 @@ class KDLRMPNode(RMPNode):
     Builds a new RMP node, map is forward kinematics from base_link to end_link.
     offset is in the local frame of end_link's parent joint.
     """
+
     def __init__(self, name, parent, robot, base_link, end_link, offset=np.zeros((3, 1))):
         _, tree = k_parser.treeFromUrdfModel(robot)
         self.chain = tree.getChain(base_link, end_link)
@@ -29,7 +33,7 @@ class KDLRMPNode(RMPNode):
                 print("KDL SOLVER ERROR in " + name + ": " + str(e))
             p = p_frame * base
             Rz, Ry, Rx = p_frame.M.GetEulerZYX()
-            return np.array([[p.x(), p.y(), p.z(), Rx, Ry, Rz]]).T
+            return np.array([[p.x(), p.y(), p.z(), Rz, Ry, Rx]]).T
 
         # Jacobian for forward kinematics
         def J(q):
@@ -53,13 +57,34 @@ class KDLRMPNode(RMPNode):
             jnt_qd = np_to_jnt_arr(qd)
             jnt_q_qd = kdl.JntArrayVel(jnt_q, jnt_qd)
             jacd = kdl.Jacobian(nq)
-            jacd.changeRefPoint(base)
 
             # solve and convert to np array
             self.jacd_solver.JntToJacDot(jnt_q_qd, jacd)
+            jacd.changeRefPoint(base)
             return jac_to_np(jacd)
 
         super().__init__(name, parent, psi, J, J_dot, verbose=False)
+
+
+class TranslationNode(RMPNode):
+    """
+    CURRENTLY DEPRECATED. Since KDL appears to use the geometric Jacobian for the fk solving,
+    non-trivial task that the pullback will faithfully reconstruct the previous Jacobian.
+    Currently, (while inefficient) all we are constructing new KDL nodes with the offset.
+    """
+    def __init__(self, name, kdl_parent, offset):
+        def psi(x):
+            # while we could try to convert this into a matrix-vector product
+            # carrying out the addition is more efficient
+            return x + np.concatenate((offset, np.zeros((3, 1))))
+
+        def J(x):
+            return np.eye(6)
+
+        def J_dot(x, xd):
+            return np.zeros((6, 6))
+
+        super().__init__(name, kdl_parent, psi, J, J_dot, verbose=False)
 
 
 class ProjectionNode(RMPNode):
@@ -70,6 +95,7 @@ class ProjectionNode(RMPNode):
     with 1's in the indices for parameters to be passed, and 0's in
     the indices for parameters to be withheld.
     """
+
     def __init__(self, name, parent, param_map):
         # construct matrix map, this is for object creation so performance
         # is less of a concern
@@ -91,32 +117,18 @@ class PositionProjection(ProjectionNode):
     """
     Convenience method to pass position from KDLRMPNode state.
     """
+
     def __init__(self, name, parent):
         super().__init__(name, parent, np.array([1, 1, 1, 0, 0, 0]))
 
 
-class RotZProjection(ProjectionNode):
+class RotationProjection(ProjectionNode):
     """
-    Convenience method to pass z-axis rotation from KDLRMPNode state.
+    Convenience method to pass rotation (Euler ZYX) from KDLRMPNode state.
     """
+
     def __init__(self, name, parent):
-        super().__init__(name, parent, np.array([0, 0, 0, 0, 0, 1]))
-
-
-class RotYProjection(ProjectionNode):
-    """
-    Convenience method to pass y-axis rotation from KDLRMPNode state.
-    """
-    def __init__(self, name, parent):
-        super().__init__(name, parent, np.array([0, 0, 0, 0, 1, 0]))
-
-
-class RotXProjection(ProjectionNode):
-    """
-    Convenience method to pass x-axis rotation from KDLRMPNode state.
-    """
-    def __init__(self, name, parent):
-        super().__init__(name, parent, np.array([0, 0, 0, 1, 0, 0]))
+        super().__init__(name, parent, np.array([0, 0, 0, 1, 1, 1]))
 
 
 def np_to_vect(v):
@@ -143,7 +155,7 @@ def jac_to_np(jac):
     return np_jac
 
 
-def rmp_from_urdf(robot):
+def rmp_tree_from_urdf(urdf_path, base_name='root'):
     """
     Constructs rmpflow tree from robot urdf, exposing all actuatable
     joints.
@@ -153,6 +165,8 @@ def rmp_from_urdf(robot):
     leaf_dict - dictionary containing all RMPNodes of actuatable (revolute or continuous)
     joints, indexed by joint name as specified in URDF
     """
+    robot = u_parser.from_xml_file(urdf_path)
+
     # find all actuated joint names
     jnts = list(filter(lambda j: j.type == 'revolute' or j.type == 'continuous', robot.joints))
     jnt_names = list(map(lambda j: j.name, jnts))
@@ -184,13 +198,61 @@ def rmp_from_urdf(robot):
         proj_dict[seg_name] = proj_vect
 
         proj_node = ProjectionNode('proj_' + seg_name, root, proj_vect)
-        seg_node = KDLRMPNode(seg_name, proj_node, robot, 'world', seg_name)
+        seg_node = KDLRMPNode(seg_name, proj_node, robot, base_name, seg_name)
         leaf_dict[seg_name] = seg_node
 
     return root, leaf_dict
 
 
-def kdl_node_array(name, parent, robot, base_link, end_link, h, num, link_dir, skip_h=0, offset=np.zeros((3,1))):
+def collision_tree_from_urdf(urdf_path, density, base_name='root'):
+    """
+    Constructs rmpflow tree from robot urdf, exposing all actuatable
+    joints. Samples a urdf's included mesh at specified density to
+    compute collision control points.
+
+    Note: this function will look for cut files of the same name as the original mesh file,
+    except with '_cut' at end of the filename (before the extension)
+
+    Example: if original file is 'kuka_link_1.obj', collision_tree_from_urdf will look for
+    'kuka_link_1_cut.obj'
+
+    Returns: root, leaf_dict
+    root - root of rmpflow tree
+    leaf_dict - dictionary containing all RMPNodes of actuatable joints (revolute or continuous)
+    collision_dict - dictionary containing all RMPNodes of collision points
+    """
+    # first, construct the entire kdl tree
+    root, leaf_dict = rmp_tree_from_urdf(urdf_path, base_name=base_name)
+    robot = u_parser.from_xml_file(urdf_path)
+
+    # loop through links, sampling mesh and adding to new tree
+    link_names = list(leaf_dict.keys())
+    collision_dict = {}
+
+    for link_name in link_names:
+        cols = []
+        # finds cut version of the file (must be made by user)
+        name, ext = os.path.splitext(robot.link_map[link_name].visual.geometry.filename)
+        path = os.path.dirname(urdf_path) + '/' + name + '_cut' + ext
+        mesh = o3d.io.read_triangle_mesh(path)
+        pcd = mesh.sample_points_poisson_disk(int(mesh.get_surface_area() * density))
+        pts = np.asarray(pcd.points)  # returned as n x 3 matrix
+        for i in range(pts.shape[0]):
+            offset = pts[i].reshape(-1, 1)
+            # cols.append(TranslationNode(link_name + "@offset_" + str(offset), leaf_dict[link_name], offset))
+            cols.append(KDLRMPNode(link_name + "@offset_" + str(offset),
+                                   leaf_dict[link_name].parent,
+                                   robot,
+                                   base_name,
+                                   link_name,
+                                   offset=offset))
+
+        collision_dict[link_name] = cols
+
+    return root, leaf_dict, collision_dict
+
+
+def kdl_node_array(name, parent, robot, base_link, end_link, h, num, link_dir, skip_h=0, offset=np.zeros((3, 1))):
     """
     Constructs a line of regulary-spaced KDLRMPNodes offset from joint specified by end_link,
     in the unit-direction of link_dir (in local frame of parent joint of end_link).
@@ -219,7 +281,7 @@ def kdl_cylinder(name,
                  pts_per_round,
                  pts_in_h,
                  link_dir,
-                 offset=np.zeros((3,1))):
+                 offset=np.zeros((3, 1))):
     """
     Constructs control points in cylindrical formation around arm link
     (typical use case: approximate geometry of link for collision avoidance)
@@ -247,13 +309,13 @@ def kdl_cylinder(name,
     # np.cross only works with row vecs, so take transpose and go back
     # to find starting vect, take cross with x y and z axis (in that order
     # in case the first one fails)
-    rnd_start = np.cross(unit_dir.T, np.array([1,0,0])).T
+    rnd_start = np.cross(unit_dir.T, np.array([1, 0, 0])).T
 
     if not np.any(rnd_start):
-        rnd_start = np.cross(unit_dir.T, np.array([0,1,0])).T
+        rnd_start = np.cross(unit_dir.T, np.array([0, 1, 0])).T
 
         if not np.any(rnd_start):
-            rnd_start = np.cross(unit_dir.T, np.array([0,0,1])).T
+            rnd_start = np.cross(unit_dir.T, np.array([0, 0, 1])).T
 
     nodes = []
 
@@ -278,9 +340,3 @@ def kdl_cylinder(name,
                                     offset=offset + rnd_next))
 
     return nodes
-
-
-
-
-
-

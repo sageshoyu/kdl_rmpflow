@@ -18,6 +18,7 @@ env.sim.data.qvel[:6] = [0, 0, 0, 0, 0, 0]
 
 r_xpos = np.size(env.sim.data.body_xpos, 0)
 target_pos = env.sim.data.body_xpos[r_xpos - 3]
+target_pos = env.sim.data.body_xpos[r_xpos - 3]
 obstacle_pos = env.sim.data.body_xpos[r_xpos - 2]
 box_pos = env.sim.data.body_xpos[r_xpos - 1]
 

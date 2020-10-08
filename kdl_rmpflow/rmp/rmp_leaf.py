@@ -186,9 +186,9 @@ class CollisionAvoidanceBox(RMPLeaf):
                     print(self.name + " SDF ZERO")
 
                 return np.dot(np.repeat(1 / sdf, 3).reshape(1, 3),
-                       np.dot(np.diag(np.maximum(q, 0.0).flatten()),
-                              np.dot(np.diag(np.sign(p).flatten()),
-                                     rot_inv)))
+                              np.dot(np.diag(np.maximum(q, 0.0).flatten()),
+                                     np.dot(np.diag(np.sign(p).flatten()),
+                                            rot_inv)))
 
             # ... and J dot (this was done by multiplying out Jacobian and using quotient rule)
             def J_dot(y, y_dot):
@@ -383,13 +383,65 @@ class Damper(RMPLeaf):
 
 
 class JointLimiter(RMPLeaf):
-    def __init__(self, name, parent, jnt_bounds, x_0, lam=0.01, sigma=0.1, nu_p=1e-5, nu_d=1e-5):
+    def __init__(self, name, parent, l_l, l_u, x_0, lam=0.01, sigma=0.1, nu_p=1e-5, nu_d=1e-5):
         psi = lambda y: y
         J = lambda y: np.eye(y.size)
         J_dot = lambda y, y_dot: np.zeros((y.size, y.size))
 
-        l_l = jnp.asarray(jnt_bounds[:, [0]])
-        l_u = jnp.asarray(jnt_bounds[:, [1]])
+        ll_l = np.asarray(l_l)
+        ll_u = np.asarray(l_u)
+
+        # note: this is named d to match the matrix D in RMPFlow appendixSTD,
+        # but is actually taken from equation defining A in joint limiting section
+        def d(q, qd, ll_l, ll_u):
+            s = (q - ll_l) / (ll_u - ll_l)
+            d = 4 * s * (1 - s)
+            alpha_l = 1 - np.exp(-np.minimum(qd, 0) ** 2 / 2 / sigma ** 2)
+            alpha_u = 1 - np.exp(-np.maximum(qd, 0) ** 2 / 2 / sigma ** 2)
+            return (s * (alpha_u * d + (1 - alpha_u)) + (1 - s) * (alpha_l * d + (1 - alpha_l))) ** -2
+
+        def grad_d(q, qd, ll_l, ll_u):
+            # compute terms in eq above:
+            s = (q - ll_l) / (ll_u - ll_l)
+            d = 4 * s * (1 - s)
+            alpha_l = 1 - np.exp(-np.minimum(qd, 0) ** 2 / 2 / sigma ** 2)
+            alpha_u = 1 - np.exp(-np.maximum(qd, 0) ** 2 / 2 / sigma ** 2)
+            b = s * (alpha_u * d + (1 - alpha_u)) + (1 - s) * (alpha_l * d + (1 - alpha_l))
+
+            # taking full advantage of chain rule here
+            # differentiation was done in Matlab livescript :/
+            ds_dq = 1 / (ll_u - ll_l)
+            dd_dq = -4 * (s - 1) * ds_dq - 4 * s * ds_dq
+            db_dq = (alpha_u * d - alpha_u + 1) * ds_dq - (alpha_l * d - alpha_l + 1) * ds_dq + \
+                    alpha_u * s * dd_dq - alpha_l * (s - 1) * dd_dq
+
+            return -2 * db_dq / b ** 3
+
+
+        def RMP_func(x, x_dot):
+            x = np.asarray(x)
+            x_dot = np.asarray(x_dot)
+
+            M = lam * np.diag(d(x, x_dot, ll_l, ll_u).flatten())
+            # must flatten since jax can only evaluate scalars
+            xi = (0.5 * grad_d(x.flatten(), x_dot.flatten(), ll_l.flatten(), ll_u.flatten()).reshape(-1, 1) * x_dot ** 2)
+
+            f = np.dot(M, nu_p * (x_0 - x) - nu_d * x_dot) - xi
+
+            # print(self.name + " f: " + str(f.flatten()) + "\nM: " + str(np.diag(M)))
+            return (f, M)
+
+        super().__init__(name, parent, None, psi, J, J_dot, RMP_func)
+
+
+class JointLimiterAutoGrad(RMPLeaf):
+    def __init__(self, name, parent, l_l, l_u, x_0, lam=0.01, sigma=0.1, nu_p=1e-5, nu_d=1e-5):
+        psi = lambda y: y
+        J = lambda y: np.eye(y.size)
+        J_dot = lambda y, y_dot: np.zeros((y.size, y.size))
+
+        jl_l = jnp.asarray(l_l)
+        jl_u = jnp.asarray(l_u)
 
         def d(q, qd, ll_l, ll_u):
             s = (q - ll_l) / (ll_u - ll_l)
@@ -398,15 +450,15 @@ class JointLimiter(RMPLeaf):
             alpha_u = 1 - jnp.exp(-jnp.maximum(qd, 0) ** 2 / 2 / sigma ** 2)
             return (s * (alpha_u * d + (1 - alpha_u)) + (1 - s) * (alpha_l * d + (1 - alpha_l))) ** -2
 
-        grad_d = vmap(grad(d, argnums=0), in_axes=(0, 0, 0, 0), out_axes=0)
+        grad_d = jit(vmap(grad(d, argnums=0), in_axes=(0, 0, 0, 0), out_axes=0))
 
         def RMP_func(x, x_dot):
             x = jnp.asarray(x)
             x_dot = jnp.asarray(x_dot)
 
-            M = lam * jnp.diag(d(x, x_dot, l_l, l_u).flatten())
+            M = lam * jnp.diag(d(x, x_dot, jl_l, jl_u).flatten())
             # must flatten since jax can only evaluate scalars
-            xi = (0.5 * grad_d(x.flatten(), x_dot.flatten(), l_l.flatten(), l_u.flatten()).reshape(-1, 1) * x_dot ** 2)
+            xi = (0.5 * grad_d(x.flatten(), x_dot.flatten(), jl_l.flatten(), jl_u.flatten()).reshape(-1, 1) * x_dot ** 2)
 
             f = jnp.dot(M, nu_p * (x_0 - x) - nu_d * x_dot) - xi
 
