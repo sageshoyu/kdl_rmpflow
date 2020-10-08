@@ -1,5 +1,5 @@
 # kdl rmp
-implementation of Riemmanian Motion Policies flow using Orocos KDL for forward kinematics (based on Georgia tech here https://github.com/gtrll/multi-robot-rmpflow)
+implementation of [RMPFlow](https://arxiv.org/abs/1811.07049) using Orocos KDL for forward kinematics (based on Georgia tech here https://github.com/gtrll/multi-robot-rmpflow)
 
 # Standalone Installation (no ROS)
 1. install mujoco and mujoco_py using these [instructions](https://github.com/openai/mujoco-py). 
