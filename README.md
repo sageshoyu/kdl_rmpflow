@@ -2,7 +2,7 @@
 implementation of [RMPFlow](https://arxiv.org/abs/1811.07049) using Orocos KDL for forward kinematics (based on Georgia tech here https://github.com/gtrll/multi-robot-rmpflow)
 
 # Standalone Installation (no ROS)
-1. install mujoco and mujoco_py using these [instructions](https://github.com/openai/mujoco-py). 
+1. install mujoco and mujoco_py using these [instructions](https://github.com/openai/mujoco-py). No need to set any flags on <code>configure.py</code>.
 2. install SIP 4 - [instructions](https://docs.huihoo.com/pyqt/sip4/installation.html) (DO NOT use pip)
 3. build orocos kdl from source - [repo](https://github.com/orocos/orocos_kinematics_dynamics/commits/master)
 
