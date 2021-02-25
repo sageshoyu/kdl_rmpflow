@@ -6,6 +6,7 @@ implementation of [RMPFlow](https://arxiv.org/abs/1811.07049) using Orocos KDL f
 2. install SIP 4 - [instructions](https://docs.huihoo.com/pyqt/sip4/installation.html) (DO NOT use pip) No need to set any flags on <code>configure.py</code>.
 3. build orocos kdl from source - [repo](https://github.com/orocos/orocos_kinematics_dynamics/commits/master)
 
+    Use this commit: 2e3fc6a20c9634861c5708aa9c016f080a7a3f7c
     Note: remove lines 35-38, 40 in [kinfam.sip](https://github.com/orocos/orocos_kinematics_dynamics/blob/master/python_orocos_kdl/PyKDL/sip/kinfam.sip) and then build as normal to change
     Python3 bindings API back to Python2 - kdl_parser_py will break otherwise
     
