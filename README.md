@@ -1,3 +1,5 @@
+## NOTE: THIS PROJECT WAS DEVELOPED USING A HANDHACKED VERSION OF OROCOS KDL WHEN PYTHON 2 SUPPORT WAS DROPPED IN 2020. FOR ALTERNATIVES, PLEASE SEE [RMP2](https://github.com/UWRobotLearning/rmp2).
+
 # kdl_rmpflow
 implementation of [RMPFlow](https://arxiv.org/abs/1811.07049) using Orocos KDL for forward kinematics (based on Georgia tech here https://github.com/gtrll/multi-robot-rmpflow)
 
